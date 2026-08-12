@@ -1,0 +1,670 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+/* 资产分拣：工作台式布局，颜色与字体继承全站设计系统。 */
+.asset-page { max-width: 1680px; margin: 0 auto; }
+.tool-card {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-flow: row dense;
+  grid-auto-rows: minmax(176px, auto); gap: 12px; padding: 12px;
+  background: transparent; border: 0; border-radius: 0;
+}
+.input-section {
+  grid-column: span 1; grid-row: span 3; min-width: 0; padding: 18px;
+  background: var(--bg-card); border: 1px solid var(--border-card); border-radius: 7px;
+}
+.section-kicker { margin-bottom: 10px; color: var(--text-strong); font-size: .875rem; font-weight: 600; }
+.input-area { margin-bottom: 14px; }
+.input-area textarea {
+  width: 100%; height: 220px; min-height: 180px; padding: 13px 14px; resize: vertical;
+  background: var(--bg-input); color: var(--text-strong); border: 1px solid var(--border-mid);
+  border-radius: 6px; font: 400 .875rem/1.65 var(--font-mono);
+}
+.input-area textarea:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 13%, transparent); }
+.action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.action-buttons .btn { width: 100%; margin: 0; }
+.action-buttons #sortBtn { grid-column: 1 / -1; min-height: 38px; }
+.action-buttons .action-divider { display: none; }
+.btn:disabled { opacity: .45; cursor: not-allowed; transform: none !important; }
+.stats-bar {
+  display: none; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0;
+  margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-card);
+  color: var(--text-dim); font-size: .75rem; font-variant-numeric: tabular-nums;
+}
+.stats-bar span { display: flex; justify-content: space-between; gap: 8px; padding: 7px 9px; border-bottom: 1px solid var(--border-line); }
+.stats-bar span:nth-child(odd) { border-right: 1px solid var(--border-line); }
+.stats-bar b { color: var(--text-strong); font-weight: 650; }
+.result-workspace, .output-section-wrap, .result-group, .output-section { display: contents; }
+.result-toolbar, .result-group-title { display: none; }
+.output-card {
+  display: flex; flex-direction: column; min-width: 0; min-height: 176px; padding: 0;
+  background: var(--bg-card); border: 1px solid var(--border-card); border-radius: 6px; overflow: hidden;
+}
+.output-header {
+  display: flex; justify-content: space-between; align-items: center; min-height: 44px;
+  padding: 8px 10px 8px 14px; background: var(--bg-input); border-bottom: 1px solid var(--border-line);
+}
+.output-header h5 { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--text-strong); font-size: .8125rem; font-weight: 600; }
+.output-header h5 .count {
+  min-width: 24px; padding: 2px 7px; border: 1px solid var(--border-mid); border-radius: 999px;
+  color: var(--text-dim); text-align: center; font-size: .6875rem; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.output-content { display: flex; flex: 1; min-height: 0; }
+.output-content textarea {
+  flex: 1; width: 100%; min-height: 142px; padding: 11px 13px; resize: none;
+  background: transparent; color: var(--text-normal); border: 0; border-radius: 0;
+  font: 400 .8125rem/1.6 var(--font-mono);
+}
+.output-content textarea:focus { box-shadow: none; }
+.compact-btn { width: 30px; height: 28px; padding: 0 !important; display: inline-flex; align-items: center; justify-content: center; }
+.segment-actions { display: flex; gap: 5px; }
+.segment-actions .compact-btn:not(:last-child) { width: auto; padding: 0 9px !important; }
+#toast {
+  position: fixed; right: 24px; bottom: 24px; z-index: 1100; display: none;
+  padding: 11px 15px; border: 1px solid var(--border-mid); border-radius: 6px;
+  background: var(--bg-card); color: var(--text-normal); font-size: .8125rem; box-shadow: 0 12px 32px rgba(0,0,0,.18);
+}
+#toast.success { border-left: 3px solid var(--success-color); }
+#toast.warning { border-left: 3px solid var(--warning-color); }
+.highlight { animation: assetHighlight 1.1s ease; }
+@keyframes assetHighlight { 40% { background: color-mix(in srgb, var(--primary-color) 10%, transparent); } }
+@media (max-width: 1320px) {
+  .tool-card { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 960px) {
+  .tool-card { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .input-section { grid-column: 1 / -1; grid-row: auto; }
+  .input-area textarea { height: 190px; }
+  .action-buttons { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .action-buttons #sortBtn { grid-column: auto; }
+  .stats-bar { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .stats-bar span:nth-child(odd) { border-right: 0; }
+  .stats-bar span:not(:nth-child(4n)) { border-right: 1px solid var(--border-line); }
+}
+@media (max-width: 720px) {
+  .tool-card { grid-template-columns: 1fr; padding: 0; }
+  .input-section { padding: 16px; }
+  .action-buttons { grid-template-columns: 1fr 1fr; }
+  .action-buttons #sortBtn { grid-column: 1 / -1; }
+  .stats-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stats-bar span:not(:nth-child(4n)) { border-right: 0; }
+  .stats-bar span:nth-child(odd) { border-right: 1px solid var(--border-line); }
+}
+</style>
+
+<div class="container-fluid py-3 asset-page">
+  <div class="tool-card">
+      <div class="input-section">
+        <div class="section-kicker">原始数据</div>
+        <div class="input-area">
+          <textarea id="input" placeholder="粘贴任意混合文本（域名、IP、URL、Tscan/Fscan 结果）→ 一键分拣到对应输出框" oninput="updateButtonState()"></textarea>
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn" id="sortBtn" onclick="sortAll()">一键分拣</button>
+          <button class="btn btn-secondary" onclick="filterPrivate()">过滤内网</button>
+          <span class="action-divider" aria-hidden="true"></span>
+          <button class="btn btn-secondary" onclick="exportAssets('csv')">导出 CSV</button>
+          <button class="btn btn-secondary" onclick="exportAssets('json')">导出 JSON</button>
+          <span class="action-divider" aria-hidden="true"></span>
+          <button class="btn btn-secondary" onclick="clearAll()">清空全部</button>
+        </div>
+
+        <div class="stats-bar" id="statsBar">等待分拣数据...</div>
+      </div>
+
+      <div class="result-workspace">
+        <div class="output-section-wrap">
+        <section class="tab-content active result-group" id="basic-tab">
+          <div class="result-group-title"><h2>基础资产与个人信息</h2><span>域名、邮箱及已校验的个人信息</span></div>
+          <div class="output-section">
+            <div class="output-card">
+              <div class="output-header">
+                <h5>主域名 <span class="count" id="mainDomainCount">0</span></h5>
+                <button class="btn compact-btn" onclick="copyOut('mainDomain')"><i class="bi bi-clipboard" title="复制"></i></button>
+              </div>
+              <div class="output-content">
+                <textarea id="mainDomain" readonly class="output"></textarea>
+              </div>
+            </div>
+
+            <div class="output-card">
+              <div class="output-header">
+                <h5>子域名 <span class="count" id="subDomainCount">0</span></h5>
+                <button class="btn compact-btn" onclick="copyOut('subDomain')"><i class="bi bi-clipboard" title="复制"></i></button>
+              </div>
+              <div class="output-content">
+                <textarea id="subDomain" readonly class="output"></textarea>
+              </div>
+            </div>
+
+            <div class="output-card">
+              <div class="output-header">
+                <h5>Email <span class="count" id="emailListCount">0</span></h5>
+                <button class="btn compact-btn" onclick="copyOut('emailList')"><i class="bi bi-clipboard" title="复制"></i></button>
+              </div>
+              <div class="output-content">
+                <textarea id="emailList" readonly class="output"></textarea>
+              </div>
+            </div>
+
+            <div class="output-card">
+              <div class="output-header">
+                <h5>手机号 <span class="count" id="phoneListCount">0</span></h5>
+                <button class="btn compact-btn" onclick="copyOut('phoneList')"><i class="bi bi-clipboard" title="复制"></i></button>
+              </div>
+              <div class="output-content"><textarea id="phoneList" readonly class="output"></textarea></div>
+            </div>
+
+            <div class="output-card">
+              <div class="output-header">
+                <h5>身份证号 <span class="count" id="idCardListCount">0</span></h5>
+                <button class="btn compact-btn" onclick="copyOut('idCardList')"><i class="bi bi-clipboard" title="复制"></i></button>
+              </div>
+              <div class="output-content"><textarea id="idCardList" readonly class="output"></textarea></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="tab-content result-group" id="network-tab">
+          <div class="result-group-title"><h2>网络资产</h2><span>地址、端口与访问入口</span></div>
+          <div class="output-section">
+            <div class="output-card">
+              <div class="output-header">
+				  <h5>IP 地址 <span class="count" id="ipListCount">0</span></h5>
+					<button class="btn compact-btn" onclick="copyOut('ipList')"><i class="bi bi-clipboard" title="复制"></i></button>
+				</div>
+              <div class="output-content">
+                <textarea id="ipList" readonly class="output"></textarea>
+              </div>
+            </div>
+
+            <div class="output-card">
+              <div class="output-header">
+                <h5>IP+端口 <span class="count" id="ipPortListCount">0</span></h5>
+                <button class="btn compact-btn" onclick="copyOut('ipPortList')"><i class="bi bi-clipboard" title="复制"></i></button>
+              </div>
+              <div class="output-content">
+                <textarea id="ipPortList" readonly class="output"></textarea>
+              </div>
+            </div>
+
+            <div class="output-card">
+              <div class="output-header">
+                <h5>URL 列表 <span class="count" id="urlListCount">0</span></h5>
+                <button class="btn compact-btn" onclick="copyOut('urlList')"><i class="bi bi-clipboard" title="复制"></i></button>
+              </div>
+              <div class="output-content">
+                <textarea id="urlList" readonly class="output"></textarea>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="tab-content result-group" id="advanced-tab">
+          <div class="result-group-title"><h2>安全指标与扫描结果</h2><span>网段、漏洞编号、指纹及扫描命中项</span></div>
+          <div class="output-section">
+            <div class="output-card">
+              <div class="output-header">
+                <h5>IP段生成 <span class="count" id="ipSegmentListCount">0</span></h5>
+                <div class="segment-actions">
+					<button class="btn btn-secondary compact-btn" onclick="generateIpSegments('b')">B段</button>
+					<button class="btn btn-secondary compact-btn" onclick="generateIpSegments('c')">C段</button>
+					<button class="btn compact-btn" onclick="copyOut('ipSegmentList')"><i class="bi bi-clipboard" title="复制"></i></button>
+				  </div>
+              </div>
+              <div class="output-content">
+                <textarea id="ipSegmentList" readonly class="output"></textarea>
+              </div>
+            </div>
+
+            <div class="output-card">
+              <div class="output-header">
+                <h5>扫描结果 <span class="count" id="scanResultCount">0</span></h5>
+                <button class="btn compact-btn" onclick="copyOut('scanResult')"><i class="bi bi-clipboard" title="复制"></i></button>
+              </div>
+              <div class="output-content">
+                <textarea id="scanResult" readonly class="output"></textarea>
+              </div>
+            </div>
+            <div class="output-card">
+              <div class="output-header"><h5>Hash <span class="count" id="hashListCount">0</span></h5><button class="btn compact-btn" onclick="copyOut('hashList')"><i class="bi bi-clipboard"></i></button></div>
+              <div class="output-content"><textarea id="hashList" readonly class="output"></textarea></div>
+            </div>
+            <div class="output-card">
+              <div class="output-header"><h5>CVE <span class="count" id="cveListCount">0</span></h5><button class="btn compact-btn" onclick="copyOut('cveList')"><i class="bi bi-clipboard"></i></button></div>
+              <div class="output-content"><textarea id="cveList" readonly class="output"></textarea></div>
+            </div>
+            <div class="output-card">
+              <div class="output-header"><h5>CIDR <span class="count" id="cidrListCount">0</span></h5><button class="btn compact-btn" onclick="copyOut('cidrList')"><i class="bi bi-clipboard"></i></button></div>
+              <div class="output-content"><textarea id="cidrList" readonly class="output"></textarea></div>
+            </div>
+            <div class="output-card">
+              <div class="output-header"><h5>IPv6 <span class="count" id="ipv6ListCount">0</span></h5><button class="btn compact-btn" onclick="copyOut('ipv6List')"><i class="bi bi-clipboard"></i></button></div>
+              <div class="output-content"><textarea id="ipv6List" readonly class="output"></textarea></div>
+            </div>
+            <div class="output-card">
+              <div class="output-header"><h5>MAC <span class="count" id="macListCount">0</span></h5><button class="btn compact-btn" onclick="copyOut('macList')"><i class="bi bi-clipboard"></i></button></div>
+              <div class="output-content"><textarea id="macList" readonly class="output"></textarea></div>
+            </div>
+          </div>
+        </section>
+        </div>
+      </div>
+  </div>
+</div>
+
+<textarea id="txt" style="position:fixed;left:-100%"></textarea>
+<div id="toast"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 工具函数
+const $ = id => document.getElementById(id);
+const toast = (msg, type = 'success') => {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = type;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2000);
+};
+
+const COPY_LABELS = {
+  mainDomain: '主域名', subDomain: '子域名', emailList: 'Email',
+  phoneList: '手机号', idCardList: '身份证号',
+  ipList: 'IP 列表', ipPortList: 'IP+端口', urlList: 'URL 列表',
+  ipSegmentList: 'IP 段', scanResult: '扫描结果', hashList: 'Hash',
+  cveList: 'CVE', cidrList: 'CIDR', ipv6List: 'IPv6', macList: 'MAC'
+};
+
+const copy = (t, label) => {
+  if (!t.trim()) {
+    toast('没有内容可复制', 'warning');
+    return;
+  }
+
+  const ta = document.getElementById('txt');
+  ta.value = t;
+  ta.select();
+  document.execCommand('copy');
+  toast(`${label || '内容'}已复制`, 'success');
+};
+
+function updateButtonState() {
+  const input = $('input').value.trim();
+  $('sortBtn').disabled = !input;
+}
+
+function updateCounts() {
+  const ids = ['mainDomain', 'subDomain', 'emailList', 'phoneList', 'idCardList', 'ipList', 'ipPortList', 'urlList', 'ipSegmentList', 'scanResult', 'hashList', 'cveList', 'cidrList', 'ipv6List', 'macList'];
+  ids.forEach(id => {
+    const count = $(id).value.split('\n').filter(line => line.trim() !== '').length;
+    $(id + 'Count').textContent = count;
+  });
+}
+
+function highlightElement(id) {
+  const el = $(id);
+  el.classList.add('highlight');
+  setTimeout(() => el.classList.remove('highlight'), 1500);
+}
+
+// 核心功能
+function sortAll() {
+  const input = $('input').value.trim();
+  if (!input) {
+    toast('请输入内容', 'warning');
+    return;
+  }
+
+  // 清空所有输出区域
+  $('mainDomain').value = '';
+  $('subDomain').value = '';
+  $('emailList').value = '';
+  $('phoneList').value = '';
+  $('idCardList').value = '';
+  $('ipList').value = '';
+  $('ipPortList').value = '';
+  $('urlList').value = '';
+  $('ipSegmentList').value = '';
+  $('scanResult').value = '';
+  ['hashList','cveList','cidrList','ipv6List','macList'].forEach(id => $(id).value = '');
+
+  // 实际解析逻辑
+  const lines = input.split(/\r?\n/);
+  const mainDomains = new Set();
+  const subDomains = new Set();
+  const emails = new Set();
+  const phones = new Set();
+  const idCards = new Set();
+  const ips = new Set();
+  const ipPorts = new Set();
+  const urls = new Set();
+  const scanResults = new Set();
+  const hashes = new Set(), cves = new Set(), cidrs = new Set(), ipv6s = new Set(), macs = new Set();
+
+  lines.forEach(line => {
+    const text = line.trim();
+    if (!text) return;
+
+    // Email 提取
+    const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,63}\b/g;
+    const emailMatches = text.match(emailRegex);
+    if (emailMatches) {
+      emailMatches.forEach(email => emails.add(email.toLowerCase()));
+    }
+
+    // 中国大陆手机号（可带 +86 / 86 前缀及简单分隔符）
+    const phoneRegex = /(?:^|\D)(?:(?:\+?86)[ -]?)?(1[3-9]\d[ -]?\d{4}[ -]?\d{4})(?!\d)/g;
+    for (const match of text.matchAll(phoneRegex)) phones.add(match[1].replace(/\D/g, ''));
+
+    // 18 位居民身份证：校验日期与 ISO 7064 校验码，降低长数字误报。
+    const idRegex = /(?:^|\D)(\d{17}[\dXx])(?![\dXx])/g;
+    for (const match of text.matchAll(idRegex)) {
+      const value = match[1].toUpperCase();
+      if (isValidChineseId(value)) idCards.add(value);
+    }
+
+    for (const match of text.matchAll(/\b(?:CVE-\d{4}-\d{4,})\b/ig)) cves.add(match[0].toUpperCase());
+    for (const match of text.matchAll(/\b[a-fA-F0-9]{32}\b|\b[a-fA-F0-9]{40}\b|\b[a-fA-F0-9]{64}\b/g)) {
+      const value = match[0].toLowerCase();
+      hashes.add((value.length === 32 ? 'MD5 ' : value.length === 40 ? 'SHA1 ' : 'SHA256 ') + value);
+    }
+    for (const match of text.matchAll(/\b((?:\d{1,3}\.){3}\d{1,3})\/(\d|[12]\d|3[0-2])\b/g)) {
+      if (isValidIP(match[1])) cidrs.add(match[0]);
+    }
+    for (const match of text.matchAll(/\b(?:[0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}\b/g)) macs.add(match[0].replace(/-/g, ':').toUpperCase());
+    for (const token of text.split(/[\s,;\[\]()]+/)) {
+      const candidate = token.replace(/^https?:\/\//i, '').replace(/^\[|\]$|\/\d{1,3}$/g, '');
+      if (candidate.includes(':') && isValidIPv6(candidate)) ipv6s.add(candidate.toLowerCase());
+    }
+
+    // 从日志行中提取 URL，而不是把整行当作 URL。
+    const urlRegex = /https?:\/\/[^\s<>"']+/ig;
+    for (const rawUrl of text.match(urlRegex) || []) {
+      const cleanUrl = rawUrl.replace(/[),.;\]}]+$/, '');
+      try {
+        const urlObj = new URL(cleanUrl);
+        urls.add(urlObj.href);
+        const hostname = urlObj.hostname.toLowerCase().replace(/\.$/, '');
+        if (isValidIP(hostname)) {
+          ips.add(hostname);
+          if (urlObj.port) ipPorts.add(`${hostname}:${urlObj.port}`);
+        } else {
+          classifyDomain(hostname, mainDomains, subDomains);
+        }
+      } catch (e) {
+        // 略过损坏的 URL，后续规则仍会解析该行的其他资产。
+      }
+    }
+
+    // IP+端口 识别
+    const ipPortRegex = /(\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b):(\d{1,5})/g;
+    const ipPortMatches = text.matchAll(ipPortRegex);
+    for (const match of ipPortMatches) {
+      const port = Number(match[2]);
+      if (isValidIP(match[1]) && port >= 1 && port <= 65535) {
+        ipPorts.add(`${match[1]}:${port}`);
+        ips.add(match[1]);
+      }
+    }
+
+    // IP 地址识别 (单独IP，不包含端口)
+    const ipRegex = /(\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b)(?![:0-9])/g;
+    const ipMatches = text.match(ipRegex);
+    if (ipMatches) {
+      ipMatches.filter(isValidIP).forEach(ip => ips.add(ip));
+    }
+
+    // 域名识别
+    const domainRegex = /([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}/g;
+    const domainMatches = text.match(domainRegex);
+    if (domainMatches) {
+      domainMatches.forEach(domain => {
+        classifyDomain(domain, mainDomains, subDomains);
+      });
+    }
+
+    // 扫描结果识别
+    if (/PoC|爆破|摄像头|弱口令|漏洞|VUL|CVE|存在|成功|登录|后台|管理员/i.test(text)) {
+      scanResults.add(text);
+    }
+  });
+
+  // 设置输出值
+  $('mainDomain').value = Array.from(mainDomains).sort().join('\n');
+  $('subDomain').value = Array.from(subDomains).sort().join('\n');
+  $('emailList').value = Array.from(emails).sort().join('\n');
+  $('phoneList').value = Array.from(phones).sort().join('\n');
+  $('idCardList').value = Array.from(idCards).sort().join('\n');
+  $('ipList').value = Array.from(ips).sort().join('\n');
+  $('ipPortList').value = Array.from(ipPorts).sort().join('\n');
+  $('urlList').value = Array.from(urls).sort().join('\n');
+  $('scanResult').value = Array.from(scanResults).join('\n');
+  $('hashList').value = Array.from(hashes).sort().join('\n');
+  $('cveList').value = Array.from(cves).sort().join('\n');
+  $('cidrList').value = Array.from(cidrs).sort().join('\n');
+  $('ipv6List').value = Array.from(ipv6s).sort().join('\n');
+  $('macList').value = Array.from(macs).sort().join('\n');
+
+  // 自动生成C段
+  generateIpSegments('c');
+
+  updateCounts();
+
+  const stats = {
+    mainDomains: Array.from(mainDomains),
+    subDomains: Array.from(subDomains),
+    emails: Array.from(emails),
+    phones: Array.from(phones),
+    idCards: Array.from(idCards),
+    ips: Array.from(ips),
+    ipPorts: Array.from(ipPorts),
+    urls: Array.from(urls),
+    scanResults: Array.from(scanResults)
+    , hashes: Array.from(hashes), cves: Array.from(cves), cidrs: Array.from(cidrs), ipv6s: Array.from(ipv6s), macs: Array.from(macs)
+  };
+
+  updateStats(stats);
+
+  toast(`分拣完成: ${mainDomains.size}主域, ${subDomains.size}子域, ${ips.size}IP, ${urls.size}URL`, 'success');
+
+  // 显示统计栏
+  $('statsBar').style.display = 'flex';
+}
+
+// 域名分类
+function classifyDomain(domain, mainDomains, subDomains) {
+  domain = domain.toLowerCase().replace(/^\.+|\.+$/g, '');
+  if (!isValidDomain(domain)) return;
+  const parts = domain.split('.');
+  const commonSecondLevelSuffixes = new Set([
+    'com.cn', 'net.cn', 'org.cn', 'gov.cn', 'edu.cn', 'ac.cn',
+    'co.uk', 'org.uk', 'me.uk', 'ac.uk', 'gov.uk',
+    'com.au', 'net.au', 'org.au', 'co.jp', 'co.kr', 'co.nz',
+    'com.hk', 'com.tw', 'com.sg', 'com.br', 'com.mx', 'co.in'
+  ]);
+  const suffixLength = commonSecondLevelSuffixes.has(parts.slice(-2).join('.')) ? 2 : 1;
+  const registrableLength = suffixLength + 1;
+  if (parts.length > registrableLength) {
+    subDomains.add(domain);
+    const mainDomain = parts.slice(-registrableLength).join('.');
+    mainDomains.add(mainDomain);
+  } else {
+    mainDomains.add(domain);
+  }
+}
+
+// IP段生成
+function generateIpSegments(type) {
+  const ips = $('ipList').value.split('\n').filter(ip => ip.trim() !== '');
+  const segments = new Set();
+
+  ips.forEach(ip => {
+    if (isValidIP(ip)) {
+      const parts = ip.split('.');
+      if (type === 'b') {
+        // B段: x.x.0.0/16
+        segments.add(`${parts[0]}.${parts[1]}.0.0/16`);
+      } else {
+        // C段: x.x.x.0/24
+        segments.add(`${parts[0]}.${parts[1]}.${parts[2]}.0/24`);
+      }
+    }
+  });
+
+  const segmentArray = Array.from(segments).sort();
+  $('ipSegmentList').value = segmentArray.join('\n');
+
+  updateCounts();
+  toast(`已生成${type.toUpperCase()}段IP: ${segments.size}个`, 'success');
+}
+
+function filterPrivate() {
+  if (!$('ipList').value.trim() && !$('ipPortList').value.trim()) {
+    toast('请先进行"一键分拣"', 'warning');
+    return;
+  }
+
+  const ipList = $('ipList').value.split(/\r?\n/).filter(ip => ip.trim() !== '' && !isPrivateIP(ip));
+  $('ipList').value = ipList.join('\n');
+
+  const ipPortList = $('ipPortList').value.split(/\r?\n/).filter(ipPort => {
+    const ip = ipPort.split(':')[0];
+    return ip && !isPrivateIP(ip);
+  });
+  $('ipPortList').value = ipPortList.join('\n');
+
+  // 强制刷新计数
+  updateCounts();
+
+  generateIpSegments('c');
+  const stats = collectStatsData();
+  updateStats(stats);
+
+  $('statsBar').style.display = 'flex';
+  toast(`已过滤内网 IP，剩余 ${ipList.length} 个公网 IP`, 'success');
+}
+
+function clearAll() {
+  $('input').value = '';
+  $('mainDomain').value = '';
+  $('subDomain').value = '';
+  $('emailList').value = '';
+  $('phoneList').value = '';
+  $('idCardList').value = '';
+  $('ipList').value = '';
+  $('ipPortList').value = '';
+  $('urlList').value = '';
+  $('ipSegmentList').value = '';
+  $('scanResult').value = '';
+  ['hashList','cveList','cidrList','ipv6List','macList'].forEach(id => $(id).value = '');
+
+  updateCounts();
+
+  // 隐藏统计栏并恢复初始文字
+  $('statsBar').style.display = 'none';
+  $('statsBar').innerHTML = '等待分拣数据...';
+
+  toast('已清空所有内容', 'success');
+}
+
+function copyOut(id) {
+  copy($(id).value, COPY_LABELS[id]);
+  highlightElement(id);
+}
+
+function updateStats(data) {
+  const stats = [
+    {name: '主域名', count: data.mainDomains.length},
+    {name: '子域名', count: data.subDomains.length},
+    {name: 'Email', count: data.emails.length},
+    {name: '手机号', count: data.phones.length},
+    {name: '身份证号', count: data.idCards.length},
+    {name: 'IP', count: data.ips.length},
+    {name: 'IP+端口', count: data.ipPorts.length},
+    {name: 'URL', count: data.urls.length},
+    {name: '敏感结果', count: data.scanResults.length}
+    ,{name: 'Hash', count: data.hashes.length},{name: 'CVE', count: data.cves.length},
+    {name: 'CIDR', count: data.cidrs.length},{name: 'IPv6', count: data.ipv6s.length},{name: 'MAC', count: data.macs.length}
+  ];
+
+  const statsHtml = stats.map(stat =>
+    `<span>${stat.name} <b>${stat.count}</b></span>`
+  ).join('');
+
+  $('statsBar').innerHTML = statsHtml;
+}
+
+function collectStatsData() {
+  const lines = id => $(id).value.split(/\r?\n/).filter(Boolean);
+  return {
+    mainDomains: lines('mainDomain'), subDomains: lines('subDomain'),
+    emails: lines('emailList'), phones: lines('phoneList'), idCards: lines('idCardList'), ips: lines('ipList'),
+    ipPorts: lines('ipPortList'), urls: lines('urlList'),
+    scanResults: lines('scanResult'), hashes: lines('hashList'), cves: lines('cveList'),
+    cidrs: lines('cidrList'), ipv6s: lines('ipv6List'), macs: lines('macList')
+  };
+}
+
+// 辅助函数
+function isValidIP(ip) {
+  return /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ip);
+}
+
+function isValidDomain(domain) {
+  if (!domain || domain.length > 253 || domain.includes('..')) return false;
+  const labels = domain.split('.');
+  const fileExtensions = new Set([
+    'exe','dll','sys','msi','msp','scr','com','bat','cmd','ps1','vbs','js','jar','apk','dmg','pkg','deb','rpm','appimage',
+    'zip','rar','7z','gz','bz2','xz','tar','iso','img','pdf','doc','docx','xls','xlsx','ppt','pptx','rtf','txt','csv','log',
+    'jpg','jpeg','png','gif','bmp','svg','webp','ico','mp3','wav','mp4','avi','mkv','mov','json','xml','yaml','yml','ini','conf','config','bak','tmp'
+  ]);
+  if (fileExtensions.has(labels[labels.length - 1].toLowerCase())) return false;
+  return labels.length >= 2 && labels.every(label =>
+    label.length >= 1 && label.length <= 63 &&
+    /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label)
+  ) && /[a-z]{2,63}$/i.test(labels[labels.length - 1]);
+}
+
+function isValidChineseId(value) {
+  if (!/^\d{17}[\dX]$/.test(value)) return false;
+  const year = Number(value.slice(6, 10)), month = Number(value.slice(10, 12)), day = Number(value.slice(12, 14));
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (year < 1900 || date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return false;
+  const weights = [7,9,10,5,8,4,2,1,6,3,7,9,10,5,8,4,2];
+  const checks = '10X98765432';
+  const sum = value.slice(0, 17).split('').reduce((n, digit, i) => n + Number(digit) * weights[i], 0);
+  return value[17] === checks[sum % 11];
+}
+
+function isPrivateIP(ip) {
+  return /^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|127\.|169\.254\.)/.test(ip);
+}
+
+function isValidIPv6(value) {
+  if (!value || !value.includes(':') || /[^0-9a-f:]/i.test(value)) return false;
+  try { new URL('http://[' + value + ']/'); return true; } catch (e) { return false; }
+}
+
+function exportAssets(format) {
+  const data = collectStatsData();
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  let content, mime, ext;
+  if (format === 'json') {
+    content = JSON.stringify({generatedAt: new Date().toISOString(), ...data}, null, 2); mime = 'application/json'; ext = 'json';
+  } else {
+    const rows = [['type','value']];
+    Object.keys(data).forEach(type => data[type].forEach(value => rows.push([type, value])));
+    content = '\uFEFF' + rows.map(row => row.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\r\n'); mime = 'text/csv;charset=utf-8'; ext = 'csv';
+  }
+  const blob = new Blob([content], {type: mime}); const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'asset-ioc-' + stamp + '.' + ext; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+// 初始化
+updateButtonState();
+</script>
+{% endblock %}

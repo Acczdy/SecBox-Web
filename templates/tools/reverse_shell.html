@@ -1,0 +1,711 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+/* Shell反连样式 */
+.rsg-wrap {
+  padding: 15px;
+}
+
+/* 顶部配置区 */
+.rsg-top-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+@media (max-width: 768px) {
+  .rsg-top-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rsg-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  padding: 15px;
+}
+
+.rsg-card-title {
+  color: #333;
+  font-weight: 600;
+  font-size: 1rem;
+  margin: 0 0 12px 0;
+}
+
+/* 输入框 */
+.rsg-input-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.rsg-input-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rsg-input-box label {
+  font-size: 0.85rem;
+  color: #666;
+  white-space: nowrap;
+}
+
+.rsg-input-box input {
+  width: 140px;
+  padding: 8px 10px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 1rem;
+  text-align: center;
+  background: #f8f9fa;
+  color: #333;
+}
+
+.rsg-input-box input:focus {
+  outline: none;
+  border-color: #00e5ff;
+  box-shadow: 0 0 0 2px rgba(0,229,255,0.15);
+}
+
+.rsg-port-btns {
+  display: flex;
+  gap: 4px;
+}
+
+/* 代码显示区 */
+.rsg-code-box {
+  position: relative;
+  margin-top: 10px;
+}
+
+.rsg-code-box pre {
+  background: #1a1a2e;
+  color: #e6e6e6;
+  border: 1px solid #00e5ff;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 0.9rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+  min-height: 50px;
+}
+
+.rsg-prompt {
+  color: #00e5ff;
+  margin-bottom: 4px;
+}
+
+/* 按钮 */
+.rsg-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.rsg-btn:hover {
+  opacity: 0.9;
+}
+
+.rsg-btn-primary {
+  background: #00e5ff;
+  color: #fff;
+}
+
+.rsg-btn-outline {
+  background: transparent;
+  border: 1px solid #00e5ff;
+  color: #00e5ff;
+}
+
+.rsg-btn-outline:hover {
+  background: rgba(0,229,255,0.08);
+}
+
+.rsg-btn-sm {
+  padding: 4px 10px;
+  font-size: 0.8rem;
+}
+
+.rsg-btn-group {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+/* Tab导航 */
+.rsg-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 15px;
+  background: #f8f9fa;
+  padding: 8px;
+  border-radius: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border: 1px solid var(--border-card);
+}
+
+.rsg-tab {
+  padding: 8px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #495057;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.rsg-tab:hover {
+  background: rgba(0,229,255,0.1);
+}
+
+.rsg-tab.active {
+  background: #00e5ff;
+  color: #fff;
+}
+
+/* Tab内容 */
+.rsg-tab-content {
+  display: none;
+}
+
+.rsg-tab-content.active {
+  display: block;
+}
+
+/* 选择列表 */
+.rsg-layout {
+  display: grid;
+  grid-template-columns: minmax(270px, 300px) minmax(0, 1fr);
+  gap: 15px;
+}
+
+@media (max-width: 992px) {
+  .rsg-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rsg-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 6px;
+  margin: 0;
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.rsg-list-item {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e9ecef;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #333;
+  transition: background 0.2s;
+}
+
+.rsg-list-item:last-child {
+  border-bottom: none;
+}
+
+.rsg-list-item:hover {
+  background: #e9ecef;
+}
+
+.rsg-list-item.active {
+  background: #00e5ff;
+  color: #fff;
+}
+
+/* 高级选项 */
+.rsg-advanced {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.rsg-advanced.hidden {
+  display: none;
+}
+
+.rsg-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rsg-field label {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.rsg-field select {
+  padding: 6px 10px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.85rem;
+}
+
+/* 开关 */
+.rsg-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.rsg-switch input {
+  width: 16px;
+  height: 16px;
+}
+
+/* Bash编码区 */
+.rsg-encode-area {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+@media (max-width: 768px) {
+  .rsg-encode-area {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rsg-encode-area textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  resize: vertical;
+  background: #f8f9fa;
+  color: #333;
+}
+
+.rsg-lang-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.rsg-lang-btn {
+  padding: 6px 12px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rsg-lang-btn.active {
+  background: #00e5ff;
+  color: #fff;
+  border-color: #00e5ff;
+}
+
+/* 警告 */
+.rsg-warning {
+  color: #dc3545;
+  font-size: 0.8rem;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.highlighted-parameter {
+  color: #4fc3f7;
+  font-weight: bold;
+}
+
+.highlighted-warning {
+  color: #ff9800;
+  font-weight: bold;
+}
+
+/* Toast（与传输命令页同款：右下角绿色） */
+.rsg-toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 158, 118, 0.15);
+  color: #009e76;
+  border-left: 4px solid #009e76;
+  padding: 10px 15px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  z-index: 1000;
+  display: none;
+}
+
+/* Bootstrap兼容 */
+.list-group-item {
+  width: 100%;
+  min-height: 38px;
+  padding: 9px 11px;
+  display: flex;
+  align-items: center;
+  border: 1px solid #e9ecef;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #333;
+  background: transparent;
+  transition: background 0.2s;
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  box-sizing: border-box;
+}
+
+.list-group-item:last-child {
+  border-bottom: 1px solid #e9ecef;
+}
+
+.list-group-item:hover {
+  background: #e9ecef;
+}
+
+.list-group-item.active {
+  background: #00e5ff;
+  color: #fff;
+}
+</style>
+
+<div class="container-fluid py-3 rsg-wrap">
+  <!-- 顶部配置 -->
+  <div class="rsg-top-row">
+    <div class="rsg-card">
+      <h4 class="rsg-card-title">IP地址 & 端口</h4>
+      <div class="rsg-input-group">
+        <div class="rsg-input-box">
+          <label>IP地址</label>
+          <input id="ip" type="text" maxlength="15" placeholder="10.10.10.10">
+        </div>
+        <div class="rsg-input-box">
+          <label>端口</label>
+          <input id="port" type="text" maxlength="5" placeholder="9001">
+          <div class="rsg-port-btns">
+            <button id="red-port" class="rsg-btn rsg-btn-outline rsg-btn-sm">-1</button>
+            <button id="inc-port" class="rsg-btn rsg-btn-outline rsg-btn-sm">+1</button>
+          </div>
+        </div>
+      </div>
+      <div id="port-privileges-warning" class="rsg-warning" style="display:none">需要 <strong>root</strong> 权限</div>
+    </div>
+
+    <div class="rsg-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h4 class="rsg-card-title" style="margin:0">主机监听命令</h4>
+        <label class="rsg-switch">
+          <input id="listener-advanced-switch" type="checkbox" checked>
+          高级选项
+        </label>
+      </div>
+      <div class="rsg-code-box">
+        <pre id="listener-command" contenteditable="true" spellcheck="false"></pre>
+      </div>
+      <div id="listener-advanced" class="rsg-advanced collapse show">
+        <div class="rsg-field">
+          <label>Type</label>
+          <select id="listener-selection"></select>
+        </div>
+      </div>
+      <div class="rsg-btn-group">
+        <button id="copy-listener" class="rsg-btn rsg-btn-primary"><i class="bi bi-clipboard" title="复制"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab导航 -->
+  <div class="rsg-tabs">
+    <button id="reverse-tab" class="rsg-tab active" data-tab="reverse">反向Shell</button>
+    <button id="bind-tab" class="rsg-tab" data-tab="bind">正向Shell</button>
+    <button id="msfvenom-tab" class="rsg-tab" data-tab="msfvenom">MSFVenom</button>
+    <button id="hoaxshell-tab" class="rsg-tab" data-tab="hoaxshell">HoaxShell</button>
+    <button id="proxy-tab" class="rsg-tab" data-tab="proxy">内网代理</button>
+    <button id="test-tab" class="rsg-tab" data-tab="test">文件下载</button>
+    <button id="clear-tab" class="rsg-tab" data-tab="clear">痕迹清理</button>
+    <button class="rsg-tab" data-tab="bash-encode">Bash编码</button>
+  </div>
+
+  <!-- Tab内容 -->
+  <div class="rsg-card">
+    <!-- 反向Shell -->
+    <div id="reverse" class="rsg-tab-content active">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="rsg-field">
+          <label>操作系统</label>
+          <select id="os-options">
+            <option value="all">所有</option>
+            <option value="linux">Linux</option>
+            <option value="windows">Windows</option>
+            <option value="mac">Mac</option>
+          </select>
+        </div>
+        <label class="rsg-switch">
+          <input id="revshell-advanced-switch" type="checkbox" checked>
+          高级选项
+        </label>
+      </div>
+      <div class="rsg-layout">
+        <ul id="reverse-shell-selection" class="rsg-list"></ul>
+        <div>
+          <div class="rsg-code-box">
+            <pre id="reverse-shell-command" contenteditable="true" spellcheck="false"></pre>
+          </div>
+          <div id="revshell-advanced" class="rsg-advanced collapse show">
+            <div class="rsg-field">
+              <label>Shell种类</label>
+              <select id="shell"></select>
+            </div>
+            <div class="rsg-field">
+              <label>编码方式</label>
+              <select id="encoding">
+                <option value="None">不编码</option>
+                <option value="encodeURL">URL编码</option>
+                <option value="encodeURLDouble">双重URL</option>
+                <option value="Base64">Base64</option>
+              </select>
+            </div>
+          </div>
+          <div class="rsg-btn-group">
+            <button class="rsg-btn rsg-btn-outline raw-listener">Raw</button>
+            <button id="copy-reverse-shell-command" class="rsg-btn rsg-btn-primary"><i class="bi bi-clipboard" title="复制"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 正向Shell -->
+    <div id="bind" class="rsg-tab-content">
+      <div class="rsg-layout">
+        <ul id="bind-shell-selection" class="rsg-list"></ul>
+        <div>
+          <div class="rsg-code-box">
+            <pre id="bind-shell-command" contenteditable="true" spellcheck="false"></pre>
+          </div>
+          <div class="rsg-btn-group">
+            <button class="rsg-btn rsg-btn-outline raw-listener">Raw</button>
+            <button id="copy-bind-shell-command" class="rsg-btn rsg-btn-primary"><i class="bi bi-clipboard" title="复制"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MSFVenom -->
+    <div id="msfvenom" class="rsg-tab-content">
+      <div class="rsg-layout">
+        <ul id="msfvenom-selection" class="rsg-list"></ul>
+        <div>
+          <div class="rsg-code-box">
+            <pre id="msfvenom-command" contenteditable="true" spellcheck="false"></pre>
+          </div>
+          <div class="rsg-btn-group">
+            <button class="rsg-btn rsg-btn-outline raw-listener">Raw</button>
+            <button id="copy-msfvenom-command" class="rsg-btn rsg-btn-primary"><i class="bi bi-clipboard" title="复制"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HoaxShell -->
+    <div id="hoaxshell" class="rsg-tab-content">
+      <div class="rsg-layout">
+        <ul id="hoaxshell-selection" class="rsg-list"></ul>
+        <div>
+          <div class="rsg-code-box">
+            <pre id="hoaxshell-command" contenteditable="true" spellcheck="false"></pre>
+          </div>
+          <div class="rsg-btn-group">
+            <a href="https://github.com/t3l3machus/hoaxshell/tree/main/revshells" target="_blank" style="text-decoration:none">
+              <button class="rsg-btn rsg-btn-outline">下载监听器</button>
+            </a>
+            <button id="copy-hoaxshell-command" class="rsg-btn rsg-btn-primary"><i class="bi bi-clipboard" title="复制"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 内网代理 -->
+    <div id="proxy" class="rsg-tab-content">
+      <div class="rsg-layout">
+        <ul id="proxy-selection" class="rsg-list"></ul>
+        <div>
+          <div class="rsg-code-box">
+            <pre id="proxy-command" contenteditable="true" spellcheck="false"></pre>
+          </div>
+          <div class="rsg-btn-group">
+            <a href="https://github.com/fatedier/frp" target="_blank" style="text-decoration:none"><button class="rsg-btn rsg-btn-outline rsg-btn-sm">Frp</button></a>
+            <a href="https://github.com/L-codes/Neo-reGeorg" target="_blank" style="text-decoration:none"><button class="rsg-btn rsg-btn-outline rsg-btn-sm">Neo-reGeorg</button></a>
+            <a href="https://github.com/EddieIvan01/iox" target="_blank" style="text-decoration:none"><button class="rsg-btn rsg-btn-outline rsg-btn-sm">iox</button></a>
+            <a href="https://github.com/haad/proxychains" target="_blank" style="text-decoration:none"><button class="rsg-btn rsg-btn-outline rsg-btn-sm">proxychains</button></a>
+            <button id="copy-proxy-command" class="rsg-btn rsg-btn-primary"><i class="bi bi-clipboard" title="复制"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 文件下载 -->
+    <div id="test" class="rsg-tab-content">
+      <div class="rsg-layout">
+        <ul id="test-selection" class="rsg-list"></ul>
+        <div>
+          <div class="rsg-code-box">
+            <pre id="test-command" contenteditable="true" spellcheck="false"></pre>
+          </div>
+          <div class="rsg-btn-group">
+            <a href="https://github.com/gentilkiwi/mimikatz" target="_blank" style="text-decoration:none"><button class="rsg-btn rsg-btn-outline">mimikatz</button></a>
+            <button id="copy-test-command" class="rsg-btn rsg-btn-primary"><i class="bi bi-clipboard" title="复制"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 痕迹清理 -->
+    <div id="clear" class="rsg-tab-content">
+      <div class="rsg-layout">
+        <ul id="clear-selection" class="rsg-list"></ul>
+        <div>
+          <div class="rsg-code-box">
+            <pre id="clear-command" contenteditable="true" spellcheck="false"></pre>
+          </div>
+          <div class="rsg-btn-group">
+            <button class="rsg-btn rsg-btn-outline raw-listener">Raw</button>
+            <button id="copy-clear-command" class="rsg-btn rsg-btn-primary"><i class="bi bi-clipboard" title="复制"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bash编码 -->
+    <div id="bash-encode" class="rsg-tab-content">
+      <div class="rsg-encode-area">
+        <div>
+          <label style="font-size:0.85rem;color:#666;margin-bottom:6px;display:block">输入字符串</label>
+          <textarea id="input" placeholder="输入需要编码的命令"></textarea>
+        </div>
+        <div>
+          <label style="font-size:0.85rem;color:#666;margin-bottom:6px;display:block">输出结果</label>
+          <textarea id="output" readonly></textarea>
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <label style="font-size:0.85rem;color:#666;margin-bottom:6px;display:block">选择语言</label>
+        <div class="rsg-lang-btns">
+          <label class="rsg-lang-btn active"><input type="radio" name="option" value="bash-1" checked> Bash-1</label>
+          <label class="rsg-lang-btn"><input type="radio" name="option" value="bash-2"> Bash-2</label>
+          <label class="rsg-lang-btn"><input type="radio" name="option" value="powershell"> PowerShell</label>
+          <label class="rsg-lang-btn"><input type="radio" name="option" value="python"> Python</label>
+          <label class="rsg-lang-btn"><input type="radio" name="option" value="perl"> Perl</label>
+        </div>
+      </div>
+      <div class="rsg-btn-group" style="margin-top:15px">
+        <button id="copy-btn" class="rsg-btn rsg-btn-primary"><i class="bi bi-clipboard" title="复制"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="clipboard-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="2000" style="position:fixed;bottom:20px;right:20px;z-index:1000;background:rgba(0,158,118,0.15);border:1px solid #009e76;border-left:4px solid #009e76;border-radius:6px;color:#009e76;font-size:0.9rem;">
+    <div class="toast-body" style="background:transparent;color:inherit;border-radius:0;padding:10px 15px;">
+      已复制到剪贴板
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='security_tools/assets/jquery-3.5.1.slim.min.js') }}"></script>
+<script src="{{ url_for('static', filename='security_tools/assets/popper-1.16.1.min.js') }}"></script>
+<script src="{{ url_for('static', filename='security_tools/assets/bootstrap-4.5.2.min.js') }}"></script>
+<script src="{{ url_for('static', filename='security_tools/assets/axios.min.js') }}"></script>
+<script>
+// 同步加载编码的shell数据
+function loadShellData() {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/static/security_tools/js/data.enc', false); // 同步请求
+    xhr.send();
+    if (xhr.status === 200) {
+        var dec = decodeURIComponent(escape(atob(xhr.responseText)));
+        var s = document.createElement('script');
+        s.textContent = dec;
+        document.head.appendChild(s);
+    }
+}
+loadShellData();
+</script>
+<script src="{{ url_for('static', filename='security_tools/js/raw-link.js') }}"></script>
+<script src="{{ url_for('static', filename='security_tools/js/light-mode-switch.js') }}"></script>
+<script src="{{ url_for('static', filename='security_tools/js/script.js') }}"></script>
+<script>
+// Tab切换
+document.querySelectorAll('.rsg-tab').forEach(tab => {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.rsg-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.rsg-tab-content').forEach(c => c.classList.remove('active'));
+    this.classList.add('active');
+    document.getElementById(this.dataset.tab).classList.add('active');
+  });
+});
+
+// Bash编码语言选择
+document.querySelectorAll('.rsg-lang-btn input').forEach(radio => {
+  radio.addEventListener('change', function() {
+    document.querySelectorAll('.rsg-lang-btn').forEach(btn => btn.classList.remove('active'));
+    this.closest('.rsg-lang-btn').classList.add('active');
+    if(typeof processInput === 'function') processInput();
+  });
+});
+
+// Bash编码复制按钮
+document.querySelector('#copy-btn').addEventListener('click', () => {
+  const output = document.querySelector('#output');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(output.value).then(function() {
+      showToast('编码结果已复制');
+    });
+  }
+});
+
+// Toast显示
+function showToast(msg) {
+  const toast = document.getElementById('clipboard-toast');
+  toast.textContent = msg || '已复制到剪贴板';
+  toast.style.display = 'block';
+  setTimeout(() => toast.style.display = 'none', 2000);
+}
+</script>
+{% endblock %}

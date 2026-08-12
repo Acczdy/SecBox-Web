@@ -1,0 +1,961 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+.sht-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.sht-main-content {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 15px;
+}
+
+@media (max-width: 900px) {
+  .sht-main-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sht-panel {
+  background: #fff;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.sht-panel h2 {
+  color: #00e5ff;
+  margin-bottom: 12px;
+  font-size: 1rem;
+}
+
+.sht-panel textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px;
+  background: #f8f9fa;
+  border: 1px solid #00e5ff;
+  border-radius: 8px;
+  color: #333;
+  resize: vertical;
+  font-family: monospace;
+}
+
+.btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.btn {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #00e5ff;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn:hover { opacity: 0.9; }
+.btn-secondary {
+  background: transparent;
+  border: 1px solid #00e5ff;
+  color: #00e5ff;
+}
+.btn-danger { background: #dc3545; }
+
+.category-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.category-tab {
+  padding: 6px 12px;
+  border: 1px solid var(--border-mid);
+  background: var(--bg-input);
+  color: var(--text-normal);
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.category-tab.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: var(--button-on-accent);
+}
+
+.engine-tabs {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 15px;
+}
+
+.engine-tab {
+  padding: 8px 20px;
+  border: 1px solid var(--border-mid);
+  background: var(--bg-input);
+  color: var(--text-normal);
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.engine-tab.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: var(--button-on-accent);
+}
+
+.dork-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.dork-card {
+  padding: 12px;
+  background: #f8f9fa;
+  border: 1px solid rgba(0,229,255,0.25);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dork-card:hover {
+  border-color: #00e5ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,229,255,0.15);
+}
+
+.dork-card h4 {
+  color: #00e5ff;
+  margin: 0 0 5px 0;
+  font-size: 0.9rem;
+}
+
+.dork-card code {
+  display: block;
+  font-size: 0.75rem;
+  color: #666;
+  background: none;
+  padding: 0;
+  word-break: break-all;
+  white-space: normal;
+}
+
+.syntax-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  margin: -15px -15px 0;
+  padding: 12px 15px;
+  background: #f8f9fa;
+  border-radius: 12px 12px 0 0;
+}
+
+.syntax-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s;
+}
+
+.syntax-body.show {
+  max-height: 800px;
+}
+
+table.syntax-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 0.85rem;
+}
+
+table.syntax-table th,
+table.syntax-table td {
+  padding: 6px 8px;
+  border: 1px solid #dee2e6;
+}
+
+table.syntax-table th {
+  background: rgba(0,229,255,0.15);
+  color: #00e5ff;
+}
+
+.history-list {
+  max-height: 200px;
+  overflow: auto;
+  margin-top: 10px;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  margin-bottom: 4px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.history-item code {
+  background: none;
+  padding: 0;
+  color: #00e5ff;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 999;
+  display: none;
+}
+
+.modal-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 450px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.close {
+  cursor: pointer;
+  font-size: 1.5rem;
+  color: #00e5ff;
+}
+
+.set-group {
+  margin-bottom: 12px;
+}
+
+.set-group label {
+  display: block;
+  margin-bottom: 4px;
+  color: #00e5ff;
+  font-size: 0.9rem;
+}
+
+.set-group input,
+.set-group select {
+  width: 100%;
+  padding: 8px;
+  background: #f8f9fa;
+  border: 1px solid #00e5ff;
+  border-radius: 8px;
+}
+
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 10px 15px;
+  border-radius: 8px;
+  display: none;
+  z-index: 1001;
+  background: #fff;
+  border: 1px solid #dee2e6;
+}
+
+.notification.success { border-left: 4px solid #00e5ff; }
+.notification.error { border-left: 4px solid #dc3545; }
+
+.custom-box {
+  margin-top: 10px;
+}
+
+.custom-item {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.custom-item input {
+  flex: 1;
+  padding: 6px 8px;
+  background: #f8f9fa;
+  border: 1px solid #00e5ff;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+</style>
+
+<div class="container-fluid py-3">
+  <div class="sht-container">
+    <div class="sht-main-content">
+      <div class="sht-panel">
+        <h2>目标域名</h2>
+        <textarea id="domains" placeholder="每行一个域名&#10;example.com&#10;test.edu.cn"></textarea>
+        <div class="btn-group">
+          <button class="btn" onclick="executeAllCategory()">执行当前分类</button>
+          <button class="btn btn-secondary" onclick="clearDomains()">清空</button>
+          <button class="btn btn-secondary" onclick="importDomains()">导入</button>
+          <button class="btn btn-secondary" onclick="showSettings()">设置</button>
+        </div>
+
+        <h3 style="margin-top:20px;color:#00e5ff;font-size:0.95rem">自定义语法</h3>
+        <div class="custom-box">
+          <div class="custom-item">
+            <input placeholder="名称" id="customName" style="width:70px;flex:none">
+            <input placeholder="语法（{domain}占位）" id="customSyntax">
+            <button class="btn" onclick="addCustom()">+</button>
+          </div>
+          <div id="customList"></div>
+        </div>
+      </div>
+
+      <div class="sht-panel">
+        <h2 id="engineTitle">Google 信息检索语法</h2>
+
+        <div class="engine-tabs">
+          <button class="engine-tab active" data-engine="google" onclick="switchEngine('google', this)">Google</button>
+          <button class="engine-tab" data-engine="baidu" onclick="switchEngine('baidu', this)">百度</button>
+          <button class="engine-tab" data-engine="bing" onclick="switchEngine('bing', this)">Bing</button>
+        </div>
+
+        <div class="category-tabs" id="categoryTabs"></div>
+
+        <div class="dork-grid" id="dorkGrid"></div>
+      </div>
+    </div>
+
+    <div class="sht-panel" style="margin-top:15px">
+      <div class="syntax-header" onclick="toggleSyntax()">
+        <h2>搜索语法速查表 <span id="syntaxArrow">▶</span></h2>
+      </div>
+      <div id="syntaxBody" class="syntax-body">
+        <table class="syntax-table">
+          <thead><tr><th>操作符</th><th>作用</th><th>示例</th></tr></thead>
+          <tbody id="syntaxTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="sht-panel" style="margin-top:15px">
+      <h2>搜索历史 <button class="btn btn-secondary" style="float:right;font-size:0.8rem" onclick="clearHistory()">清空</button></h2>
+      <div id="historyList" class="history-list"></div>
+    </div>
+  </div>
+
+  <div id="settingsModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>设置</h2><span class="close" onclick="closeSettings()">&times;</span>
+      </div>
+      <div class="set-group">
+        <label>最大并发标签数</label>
+        <input type="number" id="maxTabs" min="1" max="100" value="30">
+      </div>
+      <div class="set-group">
+        <label>标签打开间隔(毫秒)</label>
+        <input type="number" id="tabDelay" min="100" max="2000" value="300">
+      </div>
+      <div class="btn-group">
+        <button class="btn" onclick="saveSettings()">保存</button>
+        <button class="btn btn-secondary" onclick="resetSettings()">重置</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="notification"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/*
+ * 被动信息检索规则。
+ * RAW_RULES 保存检索意图，执行前必须转换成当前搜索引擎实际支持的语法，
+ * 禁止把 Google、百度和 Bing 的专属操作符直接混用。
+ */
+
+const ENGINE_URLS = {
+  google: 'https://www.google.com/search?q=',
+  baidu: 'https://www.baidu.com/s?wd=',
+  bing: 'https://www.bing.com/search?q='
+};
+
+// 基础规则以 Google 风格描述，由下方转换器生成每个引擎的最终查询。
+const RAW_RULES = [
+  // ==================== 信息收集 ====================
+  // 注意：Google/Bing 的 site: 均不支持 *.domain 通配符，用 -www 排除主站近似筛选子域页面
+  { "id": "info_subdomain", "category": "信息收集", "label": "查找子域名", "dork": "site:{domain} -site:www.{domain}" },
+  { "id": "info_robots", "category": "信息收集", "label": "Robots.txt", "dork": "site:{domain} inurl:robots.txt" },
+  { "id": "info_sitemap", "category": "信息收集", "label": "Sitemap.xml", "dork": "site:{domain} inurl:sitemap.xml" },
+  { "id": "info_git", "category": "信息收集", "label": "Git 泄露", "dork": "site:{domain} inurl:.git" },
+  { "id": "info_svn", "category": "信息收集", "label": "SVN 泄露", "dork": "site:{domain} inurl:.svn" },
+  { "id": "info_ds_store", "category": "信息收集", "label": "DS_Store 泄露", "dork": "site:{domain} inurl:.DS_Store" },
+  { "id": "info_env", "category": "信息收集", "label": "Env 配置泄露", "dork": "site:{domain} filetype:env" },
+  { "id": "info_backup", "category": "信息收集", "label": "备份文件", "dork": "site:{domain} filetype:bak | filetype:old | filetype:backup | filetype:swp" },
+  { "id": "info_compress", "category": "信息收集", "label": "压缩包文件", "dork": "site:{domain} filetype:zip | filetype:rar | filetype:7z | filetype:tar | filetype:gz | filetype:tgz" },
+  { "id": "info_log", "category": "信息收集", "label": "日志文件", "dork": "site:{domain} filetype:log" },
+  { "id": "info_config", "category": "信息收集", "label": "配置文件", "dork": "site:{domain} filetype:conf | filetype:cfg | filetype:ini | filetype:xml | filetype:json | filetype:yaml | filetype:yml" },
+  { "id": "info_database", "category": "信息收集", "label": "数据库文件", "dork": "site:{domain} filetype:sql | filetype:mdb | filetype:db | filetype:sqlite | filetype:dbf" },
+  { "id": "info_office", "category": "信息收集", "label": "办公文档", "dork": "site:{domain} filetype:doc | filetype:docx | filetype:xls | filetype:xlsx | filetype:ppt | filetype:pptx | filetype:pdf | filetype:csv | filetype:txt | filetype:rtf | filetype:odt" },
+  { "id": "info_manual", "category": "信息收集", "label": "手册/说明文档", "dork": "site:{domain} intext:手册 | intext:说明 | intext:文档 | intext:readme" },
+  { "id": "info_webinf", "category": "信息收集", "label": "WEB-INF 泄露", "dork": "site:{domain} inurl:WEB-INF" },
+  { "id": "info_source_map", "category": "信息收集", "label": "Source Map", "dork": "site:{domain} filetype:map inurl:js" },
+  { "id": "info_api_docs", "category": "信息收集", "label": "API 文档", "dork": "site:{domain} inurl:swagger | inurl:openapi | inurl:api-docs | intitle:\"Swagger UI\"" },
+  { "id": "info_ci", "category": "信息收集", "label": "CI/CD 配置", "dork": "site:{domain} inurl:.github/workflows | inurl:.gitlab-ci | inurl:Jenkinsfile" },
+  { "id": "info_docker", "category": "信息收集", "label": "容器部署配置", "dork": "site:{domain} inurl:Dockerfile | inurl:docker-compose | filetype:yaml kubernetes" },
+
+  // ==================== 后台与登录 ====================
+  { "id": "login_admin", "category": "后台与登录", "label": "后台登录入口", "dork": "site:{domain} inurl:admin | inurl:login | inurl:manage | inurl:manager | inurl:backend | inurl:system" },
+  { "id": "login_admin_title", "category": "后台与登录", "label": "后台管理 (标题)", "dork": "site:{domain} intitle:管理 | intitle:后台 | intitle:登录 | intitle:系统" },
+  { "id": "login_admin_text", "category": "后台与登录", "label": "后台管理 (正文)", "dork": "site:{domain} intext:管理 | intext:后台 | intext:登录 | intext:用户名 | intext:密码 | intext:账号" },
+  { "id": "login_install", "category": "后台与登录", "label": "安装/配置页面", "dork": "site:{domain} inurl:install | inurl:setup | inurl:config | inurl:readme | inurl:license" },
+  { "id": "login_cms", "category": "后台与登录", "label": "CMS 后台", "dork": "site:{domain} inurl:wp-admin | inurl:wp-login | inurl:administrator | inurl:user/login | inurl:admin.php" },
+  { "id": "login_phpmyadmin", "category": "后台与登录", "label": "PhpMyAdmin", "dork": "site:{domain} inurl:phpmyadmin | inurl:/phpmyadmin/" },
+  { "id": "login_tomcat", "category": "后台与登录", "label": "Tomcat 管理", "dork": "site:{domain} intitle:\"Tomcat\" | inurl:manager/html" },
+  { "id": "login_jboss", "category": "后台与登录", "label": "JBoss 管理", "dork": "site:{domain} intitle:\"JBoss\" | inurl:jmx-console" },
+  { "id": "login_vpn", "category": "后台与登录", "label": "VPN 入口", "dork": "site:{domain} inurl:vpn | inurl:sslvpn | inurl:ssl-vpn" },
+  { "id": "login_webmail", "category": "后台与登录", "label": "Webmail 入口", "dork": "site:{domain} inurl:webmail | inurl:mail | inurl:email" },
+  { "id": "login_monitor", "category": "后台与登录", "label": "监控与运维入口", "dork": "site:{domain} intitle:Grafana | intitle:Kibana | intitle:Prometheus | inurl:zabbix" },
+  { "id": "login_devops", "category": "后台与登录", "label": "研发平台入口", "dork": "site:{domain} intitle:Jenkins | intitle:GitLab | intitle:SonarQube | inurl:nexus" },
+
+  // ==================== 漏洞挖掘 ====================
+  { "id": "vuln_sqli", "category": "漏洞挖掘", "label": "SQL 注入点", "dork": "site:{domain} inurl:.php?id= | inurl:.asp?id= | inurl:.aspx?id= | inurl:.jsp?id=" },
+  { "id": "vuln_sqli_params", "category": "漏洞挖掘", "label": "SQL 注入参数", "dork": "site:{domain} inurl:catid= | inurl:news_id= | inurl:article_id= | inurl:page_id= | inurl:item_id=" },
+  { "id": "vuln_sql_error", "category": "漏洞挖掘", "label": "SQL 报错信息", "dork": "site:{domain} intext:\"sql syntax\" | intext:\"mysql error\" | intext:\"syntax error\" | intext:\"ORA-\" | intext:\"Warning: mysql\"" },
+  { "id": "vuln_upload", "category": "漏洞挖掘", "label": "文件上传点", "dork": "site:{domain} inurl:upload | inurl:upfile | inurl:fileupload | inurl:attachment" },
+  { "id": "vuln_editor", "category": "漏洞挖掘", "label": "编辑器/文件管理", "dork": "site:{domain} inurl:editor | inurl:ckeditor | inurl:fckeditor | inurl:kindeditor | inurl:ewebeditor" },
+  { "id": "vuln_webshell", "category": "漏洞挖掘", "label": "Webshell/后门", "dork": "site:{domain} inurl:shell | inurl:cmd | inurl:backdoor | inurl:wso | inurl:c99 | inurl:r57" },
+  { "id": "vuln_phpinfo", "category": "漏洞挖掘", "label": "PHPInfo 泄露", "dork": "site:{domain} intitle:\"phpinfo()\" | inurl:phpinfo.php | inurl:test.php" },
+  { "id": "vuln_struts2", "category": "漏洞挖掘", "label": "Struts2 漏洞", "dork": "site:{domain} ext:action | ext:do | ext:struts" },
+  { "id": "vuln_redirect", "category": "漏洞挖掘", "label": "开放重定向", "dork": "site:{domain} inurl:redirect | inurl:return= | inurl:url= | inurl:goto= | inurl:next=" },
+  { "id": "vuln_lfi", "category": "漏洞挖掘", "label": "本地文件包含", "dork": "site:{domain} inurl:file= | inurl:page= | inurl:path= | inurl:include=" },
+  { "id": "vuln_rce", "category": "漏洞挖掘", "label": "远程代码执行", "dork": "site:{domain} inurl:exec= | inurl:cmd= | inurl:command= | inurl:code=" },
+  { "id": "vuln_ssrf", "category": "漏洞挖掘", "label": "SSRF 漏洞", "dork": "site:{domain} inurl:url= | inurl:fetch= | inurl:proxy= | inurl:src=" },
+
+  // ==================== 敏感数据 ====================
+  { "id": "sensitive_password", "category": "敏感数据", "label": "密码相关", "dork": "site:{domain} intext:password | intext:passwd | intext:pwd | intext:密码" },
+  { "id": "sensitive_id_card", "category": "敏感数据", "label": "身份证号", "dork": "site:{domain} intext:身份证 | intext:身份证号 | intext:身份证明" },
+  { "id": "sensitive_phone", "category": "敏感数据", "label": "手机号码", "dork": "site:{domain} intext:手机号 | intext:电话 | intext:联系方式 | intext:联系电话" },
+  { "id": "sensitive_email", "category": "敏感数据", "label": "邮箱地址", "dork": "site:{domain} intext:@{domain} | inurl:mail | filetype:xls email" },
+  { "id": "sensitive_token", "category": "敏感数据", "label": "敏感凭证", "dork": "site:{domain} intext:token | intext:apikey | intext:secret | intext:api_key | intext:access_token" },
+  { "id": "sensitive_cloud_key", "category": "敏感数据", "label": "云访问凭据", "dork": "site:{domain} intext:AKIA | intext:AWS_ACCESS_KEY_ID | intext:AZURE_CLIENT_SECRET | intext:GOOGLE_APPLICATION_CREDENTIALS" },
+  { "id": "sensitive_connection", "category": "敏感数据", "label": "数据库连接串", "dork": "site:{domain} intext:mongodb:// | intext:postgresql:// | intext:mysql:// | intext:jdbc:" },
+  { "id": "sensitive_private_key", "category": "敏感数据", "label": "私钥泄露", "dork": "site:{domain} intext:\"private key\" | intext:\"BEGIN RSA\" | intext:\"BEGIN PRIVATE\"" },
+  { "id": "sensitive_account", "category": "敏感数据", "label": "账号列表", "dork": "site:{domain} intext:账号 | intext:工号 | intext:学号 | intext:用户列表" },
+  { "id": "sensitive_staff", "category": "敏感数据", "label": "员工信息", "dork": "site:{domain} intext:员工 | intext:职工 | intext:人员名单 | intext:通讯录" },
+  { "id": "sensitive_student", "category": "敏感数据", "label": "学生信息", "dork": "site:{domain} intext:学生 | intext:学号 | intext:成绩单 | intext:花名册" },
+  { "id": "sensitive_financial", "category": "敏感数据", "label": "财务信息", "dork": "site:{domain} intext:工资 | intext:薪酬 | intext:财务 | intext:报表" },
+  { "id": "sensitive_meeting", "category": "敏感数据", "label": "会议记录", "dork": "site:{domain} intext:会议 | intext:纪要 | intext:记录 filetype:doc | filetype:pdf" },
+  { "id": "sensitive_report", "category": "敏感数据", "label": "报告文档", "dork": "site:{domain} intext:报告 | intext:总结 | intext:方案 filetype:doc | filetype:pdf | filetype:xls" },
+
+  // ==================== 目录遍历 ====================
+  { "id": "dir_index", "category": "目录遍历", "label": "目录列表泄露", "dork": "site:{domain} intitle:\"Index of\" | intitle:\"index of\"" },
+  { "id": "dir_index_root", "category": "目录遍历", "label": "根目录遍历", "dork": "site:{domain} \"Index of /\"" },
+  { "id": "dir_index_admin", "category": "目录遍历", "label": "Admin 目录", "dork": "site:{domain} \"Index of\" admin" },
+  { "id": "dir_index_backup", "category": "目录遍历", "label": "Backup 目录", "dork": "site:{domain} \"Index of\" backup | \"Index of\" bak" },
+  { "id": "dir_index_config", "category": "目录遍历", "label": "Config 目录", "dork": "site:{domain} \"Index of\" config | \"Index of\" conf" },
+  { "id": "dir_index_data", "category": "目录遍历", "label": "Data 目录", "dork": "site:{domain} \"Index of\" data" },
+  { "id": "dir_index_db", "category": "目录遍历", "label": "数据库目录", "dork": "site:{domain} \"Index of\" db | \"Index of\" database" },
+  { "id": "dir_index_log", "category": "目录遍历", "label": "日志目录", "dork": "site:{domain} \"Index of\" log | \"Index of\" logs" },
+  { "id": "dir_index_upload", "category": "目录遍历", "label": "上传目录", "dork": "site:{domain} \"Index of\" upload | \"Index of\" upfiles" },
+  { "id": "dir_index_private", "category": "目录遍历", "label": "私有目录", "dork": "site:{domain} \"Index of\" private | \"Index of\" secret" },
+  { "id": "dir_index_etc", "category": "目录遍历", "label": "Etc 目录", "dork": "site:{domain} \"Index of\" etc" },
+  { "id": "dir_index_passwd", "category": "目录遍历", "label": "密码文件目录", "dork": "site:{domain} \"Index of\" passwd | \"Index of\" password" },
+
+  // ==================== 高级语法 ====================
+  { "id": "adv_ports", "category": "高级语法", "label": "非标准端口", "dork": "site:{domain} inurl:8080 | inurl:8443 | inurl:8888 | inurl:9090" },
+  { "id": "adv_pastebin", "category": "高级语法", "label": "Pastebin 泄露", "dork": "site:pastebin.com {domain}" },
+  { "id": "adv_github", "category": "高级语法", "label": "Github 泄露", "dork": "site:github.com {domain}" },
+  { "id": "adv_stackoverflow", "category": "高级语法", "label": "StackOverflow 泄露", "dork": "site:stackoverflow.com {domain}" },
+  { "id": "adv_gitee", "category": "高级语法", "label": "Gitee 泄露", "dork": "site:gitee.com {domain}" },
+  { "id": "adv_csdn", "category": "高级语法", "label": "CSDN 泄露", "dork": "site:blog.csdn.net {domain}" },
+  { "id": "adv_nginx_error", "category": "高级语法", "label": "Nginx 错误信息", "dork": "site:{domain} intext:\"nginx/\" | intext:\"nginx error\"" },
+  { "id": "adv_apache_error", "category": "高级语法", "label": "Apache 错误信息", "dork": "site:{domain} intext:\"Apache/\" | intext:\"Apache Server\"" },
+  { "id": "adv_debug", "category": "高级语法", "label": "调试与异常页面", "dork": "site:{domain} intitle:\"debug\" | intext:\"stack trace\" | intext:\"traceback\" | intext:\"exception\"" },
+  { "id": "adv_cloud_storage", "category": "高级语法", "label": "对象存储引用", "dork": "site:{domain} intext:s3.amazonaws.com | intext:blob.core.windows.net | intext:oss-cn- | intext:cos.ap-" },
+  { "id": "adv_excluded", "category": "高级语法", "label": "排除主域名", "dork": "site:{domain} -www" }
+];
+
+const SYNTAX_CHEAT = {
+  google: [
+    { op: 'site:', desc: '限定站点或域名；冒号后不能有空格', eg: 'site:example.com' },
+    { op: 'filetype:', desc: '限定文件类型', eg: 'site:example.com filetype:pdf' },
+    { op: '|', desc: '在同一结果页联合多个条件或文件类型', eg: 'site:example.com filetype:docx | pdf' },
+    { op: '""', desc: '精确匹配词语或短语', eg: 'site:example.com "login"' },
+    { op: '-', desc: '排除词语或站点', eg: 'site:example.com -site:www.example.com' },
+    { op: 'before:', desc: '限定早于指定日期', eg: 'site:example.com before:2025-01-01' },
+    { op: 'after:', desc: '限定晚于指定日期', eg: 'site:example.com after:2024-01-01' },
+    { op: 'inurl:', desc: '兼容操作符：URL 中包含单个词', eg: 'site:example.com inurl:admin' },
+    { op: 'intitle:', desc: '兼容操作符：标题中包含单个词', eg: 'site:example.com intitle:login' }
+  ],
+  baidu: [
+    { op: 'site:', desc: '限定站点；域名不能带协议或路径', eg: '后台 site:example.com' },
+    { op: 'intitle:', desc: '标题包含；冒号后不能有空格', eg: 'site:example.com intitle:后台' },
+    { op: 'inurl:', desc: 'URL 包含；冒号后不能有空格', eg: 'site:example.com inurl:admin' },
+    { op: 'filetype:', desc: '限定 DOC/XLS/PPT/PDF/RTF 文档', eg: 'site:example.com filetype:pdf' },
+    { op: '""', desc: '精确匹配且不拆分短语', eg: 'site:example.com "后台管理"' },
+    { op: '-', desc: '排除词；减号前需有空格', eg: 'site:example.com 登录 -招聘' }
+  ],
+  bing: [
+    { op: 'site:', desc: '限定站点、域名或两级以内目录', eg: 'site:example.com login' },
+    { op: 'filetype:', desc: '限定文件类型', eg: 'site:example.com filetype:pdf' },
+    { op: 'ext:', desc: '限定文件扩展名', eg: 'site:example.com ext:bak' },
+    { op: 'intitle:', desc: '标题包含；每个操作符只跟一个词', eg: 'site:example.com intitle:login' },
+    { op: 'inbody:', desc: '正文包含；每个操作符只跟一个词', eg: 'site:example.com inbody:password' },
+    { op: 'inanchor:', desc: '锚文本包含；每个操作符只跟一个词', eg: 'site:example.com inanchor:login' },
+    { op: 'OR / |', desc: '逻辑或，OR 必须大写', eg: 'site:example.com (login OR admin)' },
+    { op: 'AND / &', desc: '逻辑与；默认即为 AND', eg: 'site:example.com login AND admin' },
+    { op: 'NOT / -', desc: '排除词，NOT 必须大写', eg: 'site:example.com login NOT hiring' },
+    { op: '"" / ()', desc: '精确短语与逻辑分组', eg: 'site:example.com ("sign in" OR login)' },
+    { op: 'contains:', desc: '页面含有指向指定类型文件的链接', eg: 'site:example.com contains:pdf' },
+    { op: 'ip:', desc: '限定托管 IP（点分 IPv4）', eg: 'ip:207.46.249.252' },
+    { op: 'language:', desc: '限定语言代码', eg: 'security language:en' },
+    { op: 'loc:', desc: '限定国家或地区代码', eg: 'security loc:US' },
+    { op: 'url:', desc: '检查域名或 URL 是否被索引', eg: 'url:example.com' }
+  ]
+};
+
+
+
+let currentEngine = 'google';
+let currentCategory = '信息收集';
+let settings = { maxTabs: 30, tabDelay: 300 };
+let history = [];
+
+function groupRulesByCategory() {
+  const groups = {};
+  RAW_RULES.forEach(function(rule) {
+    if (!groups[rule.category]) {
+      groups[rule.category] = [];
+    }
+    groups[rule.category].push(rule);
+  });
+  return groups;
+}
+
+/* 百度/Bing 的组合条件拆分时，为每个分支补齐 site: 作用域。Google 不调用此函数。 */
+function expandSiteScope(dork) {
+  if (dork.indexOf('|') === -1) return dork;
+  var parts = dork.split('|').map(function(p){ return p.trim(); }).filter(function(p){ return p; });
+  var m = parts[0].match(/^(site:\S+)\s+/);
+  if (!m) return dork;  // 首个分支无 site: 前缀（如 site:pastebin.com xxx 这类规则），原样返回
+  var prefix = m[1];
+  parts[0] = parts[0].slice(m[0].length);
+  return parts.map(function(p){
+    return /^site:/i.test(p) ? p : prefix + ' ' + p;
+  }).join(' OR ');
+}
+
+const BAIDU_FILETYPE_MAP = {
+  doc: 'doc', docx: 'doc', xls: 'xls', xlsx: 'xls',
+  ppt: 'ppt', pptx: 'ppt', pdf: 'pdf', rtf: 'rtf', all: 'all'
+};
+
+function quoteSearchTerm(term) {
+  const cleaned = String(term || '').replace(/^["']|["']$/g, '');
+  return cleaned ? '"' + cleaned + '"' : '';
+}
+
+function convertToBaidu(dork) {
+  let converted = dork.replace(/site:\*\./gi, 'site:');
+  // 百度没有 intext/inbody，正文条件改为普通精确词；不支持的文件类型改查 URL 后缀。
+  converted = converted
+    .replace(/\b(?:intext|inbody):("[^"]+"|\S+)/gi, function(_, term) { return quoteSearchTerm(term); })
+    .replace(/\bext:(\w+)/gi, 'filetype:$1')
+    .replace(/\bfiletype:(\w+)/gi, function(_, ext) {
+      const supported = BAIDU_FILETYPE_MAP[ext.toLowerCase()];
+      return supported ? 'filetype:' + supported : 'inurl:.' + ext.toLowerCase();
+    });
+  // 百度官方语法不定义 OR；每个分支作为一个独立、完整的站内查询。
+  return converted.split(/\s+(?:OR|\|)\s+/i).map(function(part) {
+    return part.replace(/[()]/g, '').replace(/\s+/g, ' ').trim();
+  }).filter(Boolean);
+}
+
+function convertToBing(dork) {
+  let converted = dork
+    .replace(/\bintext:/gi, 'inbody:')
+    // Bing 官方没有 inurl:，URL 线索降级为精确关键词，避免发送无效操作符。
+    .replace(/\binurl:("[^"]+"|\S+)/gi, function(_, term) { return quoteSearchTerm(term); })
+    .replace(/\bintitle:("[^"]+")/gi, function(_, term) { return quoteSearchTerm(term); })
+    .replace(/\|/g, ' OR ');
+  return normalizeOrQuery(converted);
+}
+
+function convertToGoogle(dork) {
+  // 保留 Google Hacking 常用的单页联合格式，并压缩相同操作符：
+  // site:x filetype:docx | filetype:pdf -> site:x filetype:docx | pdf
+  const converted = dork.replace(/\bext:/gi, 'filetype:').replace(/\s+OR\s+/gi, ' | ');
+  let previousOperator = '';
+  return converted.split(/\s+\|\s+/).map(function(part, index) {
+    const cleaned = part.replace(/\s+/g, ' ').trim();
+    const operatorMatch = cleaned.match(/(?:^|\s)(filetype|inurl|intitle|intext):(\S.*)$/i);
+    if (!operatorMatch) return cleaned;
+    const operator = operatorMatch[1].toLowerCase();
+    if (index > 0 && operator === previousOperator) {
+      const operatorIndex = cleaned.toLowerCase().indexOf(operator + ':');
+      previousOperator = operator;
+      return cleaned.slice(0, operatorIndex) + cleaned.slice(operatorIndex + operator.length + 1);
+    }
+    previousOperator = operator;
+    return cleaned;
+  }).join(' | ');
+}
+
+function buildEngineQueries(engine, dork) {
+  // Google 保留为一个组合查询：site:x filetype:docx | pdf。
+  // 这样一次点击只打开一个结果页，也不会因多标签被浏览器拦截而丢失分支。
+  if (engine === 'google') return [convertToGoogle(dork)];
+  const scoped = expandSiteScope(dork);
+  // 百度/Bing 每个 OR 分支独立执行，避免两者的操作符差异。
+  const branches = scoped.split(/\s+(?:OR|\|)\s+/i).map(function(part) {
+    return part.replace(/^\(|\)$/g, '').replace(/\s+/g, ' ').trim();
+  }).filter(Boolean);
+  const queries = [];
+  branches.forEach(function(branch) {
+    const converted = engine === 'baidu' ? convertToBaidu(branch) :
+      [engine === 'bing' ? convertToBing(branch) : convertToGoogle(branch)];
+    converted.forEach(function(query) {
+      if (query && queries.indexOf(query) === -1) queries.push(query);
+    });
+  });
+  return queries;
+}
+
+function normalizeOrQuery(dork) {
+  const cleaned = dork.replace(/\s+/g, ' ').trim();
+  if (!/\sOR\s/i.test(cleaned)) return cleaned;
+  const site = (cleaned.match(/\bsite:\S+/i) || [])[0];
+  const parts = cleaned.split(/\s+OR\s+/i).map(function(part) {
+    part = part.trim().replace(/^\(|\)$/g, '');
+    return site && !/\bsite:/i.test(part) ? site + ' ' + part : part;
+  });
+  return '(' + parts.join(' OR ') + ')';
+}
+
+function init() {
+  loadSettings();
+  loadHistory();
+  renderCategoryTabs();
+  renderDorkCards();
+  renderSyntaxTable();
+  renderHistory();
+}
+
+function renderCategoryTabs() {
+  const container = document.getElementById('categoryTabs');
+  const groups = groupRulesByCategory();
+
+  container.innerHTML = '';
+  for (let category in groups) {
+    const tab = document.createElement('button');
+    tab.className = 'category-tab' + (category === currentCategory ? ' active' : '');
+    tab.textContent = category + ' (' + groups[category].length + ')';
+    tab.onclick = function() {
+      currentCategory = category;
+      document.querySelectorAll('.category-tab').forEach(function(t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      renderDorkCards();
+    };
+    container.appendChild(tab);
+  }
+}
+
+function renderDorkCards() {
+  const container = document.getElementById('dorkGrid');
+  const groups = groupRulesByCategory();
+  const rules = groups[currentCategory] || [];
+
+  container.innerHTML = '';
+  rules.forEach(function(rule) {
+    const previews = buildEngineQueries(currentEngine, rule.dork);
+    const card = document.createElement('div');
+    card.className = 'dork-card';
+    card.innerHTML =
+      '<h4>' + rule.label + '</h4>' +
+      '<code>' + previews.join('<br>') + '</code>';
+    card.onclick = function() { executeDork(rule.dork); };
+    container.appendChild(card);
+  });
+}
+
+function executeDork(dork) {
+  const domains = getDomains();
+  if (!domains) return;
+
+  const queries = buildEngineQueries(currentEngine, dork);
+
+  let count = 0;
+  let blocked = 0;
+  queries.forEach(function(query) {
+    domains.forEach(function(domain) {
+      if (count >= settings.maxTabs) return;
+      const finalQuery = query.replace(/{domain}/g, domain);
+      // 在用户点击的同步调用栈内打开，避免延时调用被浏览器当作弹窗拦截。
+      if (!openSearchTab(finalQuery, false)) blocked++;
+      count++;
+    });
+  });
+
+  showNotification(blocked ?
+    '浏览器拦截了 ' + blocked + ' 个标签，请允许本站打开弹窗后重试' :
+    '已打开 ' + count + ' 个搜索标签', blocked ? 'error' : 'success');
+}
+
+function executeAllCategory() {
+  const domains = getDomains();
+  if (!domains) return;
+
+  const groups = groupRulesByCategory();
+  const rules = groups[currentCategory] || [];
+
+  let count = 0;
+  let blocked = 0;
+  rules.forEach(function(rule) {
+    const queries = buildEngineQueries(currentEngine, rule.dork);
+
+    queries.forEach(function(query) {
+      domains.forEach(function(domain) {
+        if (count >= settings.maxTabs) return;
+        const finalQuery = query.replace(/{domain}/g, domain);
+        if (!openSearchTab(finalQuery, false)) blocked++;
+        count++;
+      });
+    });
+  });
+
+  showNotification(blocked ?
+    '浏览器拦截了 ' + blocked + ' 个标签，请允许本站打开弹窗后重试' :
+    '已打开 ' + count + ' 个搜索标签', blocked ? 'error' : 'success');
+}
+
+function openSearchTab(query, notifyBlocked) {
+  const url = ENGINE_URLS[currentEngine] + encodeURIComponent(query);
+  const opened = window.open(url, '_blank');
+  if (opened) {
+    try { opened.opener = null; } catch (error) {}
+    addHistory(query);
+    return true;
+  }
+  if (notifyBlocked !== false) {
+    showNotification('浏览器拦截了新标签，请允许本站打开弹窗后重试', 'error');
+  }
+  return false;
+}
+
+function switchEngine(engine, button) {
+  currentEngine = engine;
+  document.querySelectorAll('.engine-tab').forEach(function(tab) {
+    tab.classList.remove('active');
+  });
+  const selected = button || document.querySelector('.engine-tab[data-engine="' + engine + '"]');
+  if (selected) selected.classList.add('active');
+  const title = document.getElementById('engineTitle');
+  if (title) title.textContent = (engine === 'google' ? 'Google' : engine === 'baidu' ? '百度' : 'Bing') + ' 信息检索语法';
+  renderDorkCards();
+  renderSyntaxTable();
+}
+
+function getDomains() {
+  const value = document.getElementById('domains').value.trim();
+  if (!value) {
+    showNotification('请输入目标域名', 'error');
+    return null;
+  }
+  const invalid = [];
+  const domains = value.split(/[\n,]+/).map(function(input) {
+    const domain = normalizeDomainInput(input);
+    if (!domain && input.trim()) invalid.push(input.trim());
+    return domain;
+  }).filter(Boolean);
+  if (invalid.length) {
+    showNotification('已忽略无效目标：' + invalid.slice(0, 2).join('、'), 'error');
+  }
+  if (!domains.length) return null;
+  return Array.from(new Set(domains));
+}
+
+function normalizeDomainInput(input) {
+  let value = String(input || '').trim();
+  if (!value) return '';
+  value = value.replace(/^site:/i, '').replace(/^\*\./, '');
+  try {
+    const parsed = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(value) ? value : 'https://' + value);
+    const host = parsed.hostname.replace(/^\[|\]$/g, '').replace(/\.$/, '').toLowerCase();
+    if (!host || host.length > 253 || /\s/.test(host)) return '';
+    if (host === 'localhost' || host.indexOf('.') === -1) return '';
+    if (!/^[a-z0-9:.\-]+$/i.test(host)) return '';
+    return host;
+  } catch (error) {
+    return '';
+  }
+}
+
+function renderSyntaxTable() {
+  const tbody = document.getElementById('syntaxTableBody');
+  const syntax = SYNTAX_CHEAT[currentEngine];
+
+  tbody.innerHTML = '';
+  syntax.forEach(function(item) {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><code>' + item.op + '</code></td>' +
+      '<td>' + item.desc + '</td>' +
+      '<td><code>' + item.eg + '</code></td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function addCustom() {
+  const name = document.getElementById('customName').value.trim();
+  const syntax = document.getElementById('customSyntax').value.trim();
+
+  if (!name || !syntax) {
+    showNotification('名称和语法不能为空', 'error');
+    return;
+  }
+
+  const list = document.getElementById('customList');
+  const div = document.createElement('div');
+  div.className = 'custom-item';
+  div.innerHTML =
+    '<input value="' + name + '" readonly>' +
+    '<input value="' + syntax + '" readonly>' +
+    '<button class="btn" onclick="executeDork(\'' + syntax.replace(/'/g, "\\'") + '\')"><i class="bi bi-play-fill"></i></button>' +
+    '<button class="btn btn-secondary" onclick="this.parentElement.remove()"><i class="bi bi-x-lg"></i></button>';
+  list.appendChild(div);
+
+  document.getElementById('customName').value = '';
+  document.getElementById('customSyntax').value = '';
+}
+
+function loadHistory() {
+  const saved = localStorage.getItem('gh_tool_history');
+  if (saved) {
+    try { history = JSON.parse(saved); } catch (e) { history = []; }
+  }
+}
+
+function addHistory(query) {
+  history.unshift({ query: query, time: new Date().toLocaleString() });
+  if (history.length > 50) history = history.slice(0, 50);
+  localStorage.setItem('gh_tool_history', JSON.stringify(history));
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  if (history.length === 0) {
+    list.innerHTML = '<p style="text-align:center;color:#888;padding:20px">暂无搜索记录</p>';
+    return;
+  }
+
+  list.innerHTML = '';
+  history.forEach(function(item) {
+    const div = document.createElement('div');
+    div.className = 'history-item';
+    div.innerHTML =
+      '<code>' + item.query + '</code>' +
+      '<button class="btn btn-secondary" style="font-size:0.75rem;padding:4px 8px" onclick="openSearchTab(\'' + item.query.replace(/'/g, "\\'") + '\')"><i class="bi bi-search"></i></button>';
+    list.appendChild(div);
+  });
+}
+
+function clearHistory() {
+  history = [];
+  localStorage.removeItem('gh_tool_history');
+  renderHistory();
+  showNotification('历史记录已清空', 'success');
+}
+
+function loadSettings() {
+  const saved = localStorage.getItem('gh_tool_settings');
+  if (saved) {
+    try { settings = JSON.parse(saved); } catch (e) {}
+  }
+}
+
+function saveSettings() {
+  settings.maxTabs = parseInt(document.getElementById('maxTabs').value) || 30;
+  settings.tabDelay = parseInt(document.getElementById('tabDelay').value) || 300;
+  localStorage.setItem('gh_tool_settings', JSON.stringify(settings));
+  closeSettings();
+  showNotification('设置已保存', 'success');
+}
+
+function resetSettings() {
+  settings = { maxTabs: 30, tabDelay: 300 };
+  document.getElementById('maxTabs').value = 30;
+  document.getElementById('tabDelay').value = 300;
+}
+
+function showSettings() {
+  document.getElementById('settingsModal').style.display = 'block';
+  document.getElementById('maxTabs').value = settings.maxTabs;
+  document.getElementById('tabDelay').value = settings.tabDelay;
+}
+
+function closeSettings() {
+  document.getElementById('settingsModal').style.display = 'none';
+}
+
+function clearDomains() {
+  document.getElementById('domains').value = '';
+}
+
+function importDomains() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.txt,.csv';
+  input.onchange = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      const lines = evt.target.result.split(/[\n,]+/).map(function(l) { return l.trim(); }).filter(function(l) { return l; });
+      document.getElementById('domains').value = lines.join('\n');
+      showNotification('已导入 ' + lines.length + ' 个域名', 'success');
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function toggleSyntax() {
+  const body = document.getElementById('syntaxBody');
+  const arrow = document.getElementById('syntaxArrow');
+  const show = body.classList.toggle('show');
+  arrow.textContent = show ? '▼' : '▶';
+}
+
+function showNotification(message, type) {
+  const notification = document.getElementById('notification');
+  notification.textContent = message;
+  notification.className = 'notification ' + (type || 'info');
+  notification.style.display = 'block';
+  setTimeout(function() { notification.style.display = 'none'; }, 3000);
+}
+
+init();
+</script>
+{% endblock %}

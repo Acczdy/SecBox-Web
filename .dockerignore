@@ -1,0 +1,16 @@
+# 构建镜像时排除无关/敏感文件
+__pycache__/
+*.pyc
+*.pyo
+*.db
+*.db.*
+*.log
+nohup.out
+logs/
+.claude/
+.git/
+.env
+runtime/
+screenshots/
+Dockerfile
+docker-compose.yml

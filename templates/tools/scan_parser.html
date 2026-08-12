@@ -1,0 +1,952 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+/* 报告解析样式 */
+.sp-wrap { padding: 15px; }
+.sp-card {
+  background: #fff; border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  padding: 15px; margin-bottom: 15px;
+}
+.sp-card-title {
+  color: #333; font-weight: 600; font-size: 1rem; margin: 0 0 12px 0;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+/* 类型切换 */
+.sp-tabs {
+  display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;
+  position: sticky; top: 0; z-index: 20; padding: 8px;
+  background: var(--bg-card); border: 1px solid var(--border-card); border-radius: 8px;
+}
+.sp-tab {
+  padding: 8px 22px; border-radius: 8px; border: 1px solid var(--border-mid);
+  background: var(--bg-input); color: var(--text-normal); cursor: pointer; font-size: 0.92rem;
+  transition: all 0.15s;
+}
+.sp-tab.active { background: var(--primary-color); border-color: var(--primary-color); color: var(--button-on-accent); font-weight: 600; }
+.sp-tab:hover:not(.active) { background: var(--bg-hover); border-color: var(--border-btn-hover); color: var(--text-strong); }
+
+.sp-textarea {
+  width: 100%; min-height: 200px; padding: 10px;
+  border: 1px solid #dee2e6; border-radius: 8px; background: #f8f9fa;
+  font-family: Consolas, monospace; font-size: 0.85rem; color: #333; resize: vertical;
+}
+.sp-textarea:focus { outline: none; border-color: #00e5ff; box-shadow: 0 0 0 2px rgba(0,229,255,0.15); }
+
+.sp-btn {
+  padding: 7px 18px; border: none; border-radius: 8px; font-size: 0.9rem;
+  cursor: pointer; color: #fff; background: #00e5ff; transition: background 0.15s;
+}
+.sp-btn:hover { background: #0090a8; }
+.sp-btn-secondary { background: #6c757d; }
+.sp-btn-secondary:hover { background: #565e64; }
+.sp-btn-mini { padding: 3px 10px; font-size: 0.75rem; }
+
+.sp-note {
+  background: #eef7ee; border-left: 3px solid #1e7e34; border-radius: 8px;
+  padding: 8px 12px; font-size: 0.8rem; color: #2c5e2e; margin-top: 10px; line-height: 1.6;
+}
+/* 统计卡片 */
+.sp-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 15px; }
+.sp-stat { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 12px; text-align: center; }
+.sp-stat .num { font-size: 1.5rem; font-weight: 700; color: #00e5ff; }
+.sp-stat .num.danger { color: #dc3545; }
+.sp-stat .num.warn { color: #e67e22; }
+.sp-stat .lbl { font-size: 0.78rem; color: #888; margin-top: 2px; }
+
+/* 结果表格 */
+.sp-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.sp-table th {
+  background: #f1f3f5; color: #555; text-align: left; padding: 8px 10px;
+  border-bottom: 2px solid #dee2e6; white-space: nowrap;
+}
+.sp-table td { padding: 7px 10px; border-bottom: 1px solid #eee; vertical-align: top; word-break: break-all; }
+.sp-table tr:hover td { background: #f8f9fa; }
+.sp-badge { padding: 2px 9px; border-radius: 12px; font-size: 0.72rem; color: #fff; display: inline-block; white-space: nowrap; }
+.bg-danger2 { background: #dc3545; } .bg-purple { background: #6f42c1; }
+.bg-blue { background: #00e5ff; } .bg-green { background: #1e7e34; }
+.bg-orange { background: #e67e22; } .bg-gray { background: #7f8c8d; }
+.sp-empty { text-align: center; color: #999; padding: 24px; }
+.sp-secret { font-family: Consolas, monospace; font-size: 0.8rem; }
+.sp-ip { font-family: Consolas, monospace; white-space: nowrap; }
+details.sp-raw summary { cursor: pointer; color: #666; font-size: 0.85rem; }
+.sp-raw-pre {
+  background: #2d2d2d; color: #f8f8f2; border-radius: 8px; padding: 10px;
+  font-family: Consolas, monospace; font-size: 0.78rem; overflow-x: auto; white-space: pre-wrap; margin-top: 8px;
+}
+.sp-toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.sp-file-box { display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0;padding:11px 12px;border:1px dashed var(--border-mid);border-radius:8px;background:var(--bg-input);transition:.15s }
+.sp-file-box.drag { border-color:var(--primary-color);background:rgba(0,229,255,.07) }
+.sp-file-info { color:var(--text-dim);font-size:.8rem;min-width:0;overflow-wrap:anywhere }
+.sp-file-info.ready { color:var(--ok-text) }
+.sp-file-info.error { color:var(--err-text) }
+.sp-progress { width:100%;height:4px;display:none;overflow:hidden;border-radius:4px;background:var(--border-line) }
+.sp-progress span { display:block;width:35%;height:100%;background:var(--grad);animation:sp-loading 1s linear infinite }
+@keyframes sp-loading { from{transform:translateX(-110%)} to{transform:translateX(300%)} }
+</style>
+
+<div class="sp-wrap">
+
+  <!-- 输入区 -->
+  <div class="sp-card">
+    <div class="sp-card-title"><i class="bi bi-clipboard-data"></i><span id="inputTitle">粘贴或导入原始输出</span></div>
+    <div class="sp-tabs">
+      <div class="sp-tab active" id="tab-fscan" onclick="switchTab('fscan')">fscan 扫描结果</div>
+      <div class="sp-tab" id="tab-nmap" onclick="switchTab('nmap')">Nmap</div>
+      <div class="sp-tab" id="tab-masscan" onclick="switchTab('masscan')">Masscan</div>
+      <div class="sp-tab" id="tab-log" onclick="switchTab('log')">安全日志</div>
+      <div class="sp-tab" id="tab-nuclei" onclick="switchTab('nuclei')">Nuclei JSONL</div>
+      <div class="sp-tab" id="tab-nessus" onclick="switchTab('nessus')">Nessus CSV</div>
+      <div class="sp-tab" id="tab-webscan" onclick="switchTab('webscan')">ffuf/dirsearch</div>
+      <div class="sp-tab" id="tab-mimikatz" onclick="switchTab('mimikatz')">mimikatz 凭据输出</div>
+    </div>
+    <div id="fileDrop" class="sp-file-box">
+      <input id="reportFile" type="file" hidden>
+      <button type="button" class="sp-btn sp-btn-secondary" onclick="document.getElementById('reportFile').click()"><i class="bi bi-upload"></i> 选择报告文件</button>
+      <span id="fileInfo" class="sp-file-info">支持 TXT、CSV、JSON、JSONL；文件仅在浏览器本地读取</span>
+      <div id="fileProgress" class="sp-progress"><span></span></div>
+    </div>
+    <textarea id="rawInput" class="sp-textarea" placeholder="在此粘贴完整输出……"></textarea>
+    <div style="margin-top: 10px;" class="sp-toolbar">
+      <button class="sp-btn" onclick="doParse()"><i class="bi bi-lightning"></i> 解析</button>
+      <button class="sp-btn sp-btn-secondary" onclick="loadSample()"><i class="bi bi-file-text"></i> 载入示例</button>
+      <button class="sp-btn sp-btn-secondary" onclick="clearAll()"><i class="bi bi-trash"></i> 清空</button>
+    </div>
+    <div class="sp-note">
+      <b>隐私安全：</b>报告文件和粘贴内容均在浏览器本地解析，<b>不会上传服务器</b>。
+      fscan 支持端口、凭据、漏洞、WebTitle 等；Nmap 支持标准文本输出；Masscan 支持普通文本与 list 输出；
+      安全日志支持 SSH、Nginx/Apache、Windows 登录关键事件的快速归类；
+      mimikatz 支持解析：sekurlsa::logonpasswords（msv/wdigest/kerberos/tspkg 等）、lsadump::sam、lsadump::dcsync。
+    </div>
+  </div>
+
+  <!-- 结果区 -->
+  <div id="resultArea" style="display:none;">
+    <div class="sp-stats" id="statsRow"></div>
+    <div class="sp-card">
+      <div class="sp-toolbar">
+        <span style="font-weight:600; color:#333;"><i class="bi bi-download"></i> 导出报告：</span>
+        <button class="sp-btn sp-btn-mini" onclick="exportReport('txt')"><i class="bi bi-file-text"></i> TXT</button>
+        <button class="sp-btn sp-btn-mini" onclick="exportReport('excel')"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</button>
+        <button class="sp-btn sp-btn-mini" onclick="exportReport('md')"><i class="bi bi-markdown"></i> Markdown</button>
+        <button class="sp-btn sp-btn-mini" onclick="exportReport('pdf')"><i class="bi bi-file-earmark-pdf"></i> PDF（浏览器打印）</button>
+        <span class="sp-note" style="margin:0 0 0 8px; padding:3px 10px;">导出在本地生成，内容不经过服务器</span>
+      </div>
+    </div>
+    <div id="sections"></div>
+  </div>
+
+</div>
+
+<!-- 复制成功提示（与传输命令页同款：右下角绿色） -->
+<div id="spToast" style="position:fixed;bottom:20px;right:20px;z-index:1000;display:none;padding:10px 15px;border-radius:6px;border-left:4px solid #009e76;background:rgba(0,158,118,0.15);color:#009e76;font-size:0.9rem;"></div>
+
+<script>
+var CURRENT_TAB = "fscan";
+var IMPORTED_TEXT = "", IMPORTED_FILE = null;
+var MAX_FILE_SIZE = 100 * 1024 * 1024;
+
+function switchTab(tab) {
+  CURRENT_TAB = tab;
+  ["fscan", "nmap", "masscan", "log", "nuclei", "nessus", "webscan", "mimikatz"].forEach(function(x){
+    document.getElementById("tab-" + x).className = "sp-tab" + (tab === x ? " active" : "");
+  });
+  var hints = {
+    fscan: "在此粘贴 fscan 完整输出……",
+    nmap: "在此粘贴 Nmap 标准文本输出（-oN）……",
+    masscan: "在此粘贴 Masscan 标准/list 输出……",
+    log: "在此粘贴 SSH、Nginx/Apache 或 Windows 事件文本……",
+    nuclei: "在此粘贴 Nuclei JSONL 输出（-jsonl）……",
+    nessus: "推荐直接上传 Nessus 导出的 .csv；也可粘贴 CSV 内容……",
+    webscan: "在此粘贴 ffuf JSON 或 dirsearch/gobuster 文本输出……",
+    mimikatz: "在此粘贴 mimikatz 输出（logonpasswords / sam / dcsync）……"
+  };
+  document.getElementById("rawInput").placeholder = hints[tab];
+  document.getElementById("inputTitle").textContent = tab === "nessus" ? "上传 Nessus CSV（推荐）或粘贴内容" : "粘贴或导入原始输出";
+  document.getElementById("reportFile").accept = tab === "nessus" ? ".csv,text/csv" : ".txt,.log,.csv,.json,.jsonl,text/plain,text/csv,application/json";
+  resetImportedFile();
+  document.getElementById("resultArea").style.display = "none";
+}
+
+function esc(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function doParse() {
+  var text = IMPORTED_TEXT || document.getElementById("rawInput").value;
+  if (!text.trim()) { alert(CURRENT_TAB === "nessus" ? "请上传 Nessus CSV 文件或粘贴 CSV 内容" : "请先导入文件或粘贴内容"); return; }
+  setParseBusy(true);
+  setTimeout(function(){
+  try {
+  var parsers = { fscan: parseFscan, nmap: parseNmap, masscan: parseMasscan, log: parseSecurityLog,
+    nuclei: parseNuclei, nessus: parseNessus, webscan: parseWebDiscovery, mimikatz: parseMimikatz };
+  var res = parsers[CURRENT_TAB](text);
+  window._lastParse = { tab: CURRENT_TAB, time: new Date().toLocaleString(), file: IMPORTED_FILE ? IMPORTED_FILE.name : "", data: res.data };
+  document.getElementById("resultArea").style.display = "block";
+  document.getElementById("statsRow").innerHTML = res.statsHtml;
+  document.getElementById("sections").innerHTML = res.sectionsHtml;
+  } catch (error) {
+    alert("解析失败：" + error.message);
+  } finally { setParseBusy(false); }
+  }, 20);
+}
+
+function clearAll() {
+  document.getElementById("rawInput").value = "";
+  resetImportedFile();
+  document.getElementById("resultArea").style.display = "none";
+}
+
+function setParseBusy(busy) {
+  var p=document.getElementById("fileProgress");p.style.display=busy?"block":"none";
+  document.querySelectorAll(".sp-toolbar button").forEach(function(b){b.disabled=busy});
+}
+
+function resetImportedFile() {
+  IMPORTED_TEXT="";IMPORTED_FILE=null;
+  var input=document.getElementById("reportFile");if(input)input.value="";
+  var info=document.getElementById("fileInfo");
+  if(info){info.className="sp-file-info";info.textContent=CURRENT_TAB==="nessus"?"请选择 Nessus 导出的 CSV 文件（支持 UTF-8、GBK/GB18030、UTF-16）":"支持 TXT、CSV、JSON、JSONL；文件仅在浏览器本地读取";}
+}
+
+function decodeReportBuffer(buffer) {
+  var bytes=new Uint8Array(buffer),encoding="utf-8",offset=0;
+  if(bytes[0]===0xef&&bytes[1]===0xbb&&bytes[2]===0xbf){offset=3;}
+  else if(bytes[0]===0xff&&bytes[1]===0xfe){encoding="utf-16le";offset=2;}
+  else if(bytes[0]===0xfe&&bytes[1]===0xff){encoding="utf-16be";offset=2;}
+  var data=bytes.subarray(offset);
+  if(encoding==="utf-8"){
+    try{return {text:new TextDecoder("utf-8",{fatal:true}).decode(data),encoding:"UTF-8"};}
+    catch(e){try{return {text:new TextDecoder("gb18030").decode(data),encoding:"GBK/GB18030"};}catch(e2){}}
+  }
+  return {text:new TextDecoder(encoding).decode(data),encoding:encoding.toUpperCase()};
+}
+
+async function importReportFile(file) {
+  var info=document.getElementById("fileInfo");
+  if(!file)return;
+  if(file.size>MAX_FILE_SIZE){info.className="sp-file-info error";info.textContent="文件超过 100 MB，请先拆分后再解析";return;}
+  if(CURRENT_TAB==="nessus"&&!/\.csv$/i.test(file.name)){info.className="sp-file-info error";info.textContent="Nessus 模式请选择 .csv 文件";return;}
+  setParseBusy(true);info.className="sp-file-info";info.textContent="正在读取 "+file.name+"……";
+  try{
+    var decoded=decodeReportBuffer(await file.arrayBuffer());
+    IMPORTED_TEXT=decoded.text.replace(/^\ufeff/,"");IMPORTED_FILE=file;
+    var size=file.size<1024*1024?(file.size/1024).toFixed(1)+" KB":(file.size/1024/1024).toFixed(1)+" MB";
+    info.className="sp-file-info ready";info.textContent="已载入 "+file.name+" · "+size+" · "+decoded.encoding+" · 将在本地解析";
+    var editor=document.getElementById("rawInput");
+    if(file.size<=2*1024*1024)editor.value=IMPORTED_TEXT;
+    else {editor.value="";editor.placeholder="大文件已载入内存（不在文本框展示），点击解析即可";}
+    doParse();
+  }catch(e){IMPORTED_TEXT="";IMPORTED_FILE=null;info.className="sp-file-info error";info.textContent="读取失败："+e.message;setParseBusy(false);}
+}
+
+if (typeof document !== "undefined") {
+  document.getElementById("reportFile").addEventListener("change",function(){importReportFile(this.files[0])});
+  var fileDrop=document.getElementById("fileDrop");
+  ["dragenter","dragover"].forEach(function(name){fileDrop.addEventListener(name,function(e){e.preventDefault();fileDrop.classList.add("drag")})});
+  ["dragleave","drop"].forEach(function(name){fileDrop.addEventListener(name,function(e){e.preventDefault();fileDrop.classList.remove("drag")})});
+  fileDrop.addEventListener("drop",function(e){if(e.dataTransfer.files[0])importReportFile(e.dataTransfer.files[0])});
+  document.getElementById("rawInput").addEventListener("input",function(){if(IMPORTED_TEXT)resetImportedFile()});
+}
+
+/* =========================================================
+ * fscan 解析
+ * ======================================================= */
+var IP_RE = /((?:\d{1,3}\.){3}\d{1,3})/;
+
+function parseFscan(text) {
+  var lines = text.split(/\r?\n/);
+  var creds = [], vulns = [], sites = [], netbios = [], infos = [];
+  var portMap = {}, ipSet = {}, unparsed = [];
+
+  lines.forEach(function(raw){
+    var line = raw.trim();
+    if (!line) return;
+    var m;
+    var ipm = line.match(IP_RE);
+    if (ipm) ipSet[ipm[1]] = 1;
+
+    // 暴破成功凭据: [+] Service:IP:PORT user pass
+    m = line.match(/^\[\+\]\s*([A-Za-z][\w\.\-]{1,20})\s*[:：]\s*((?:\d{1,3}\.){3}\d{1,3})[:：](\d+)\s+(\S+)\s*(.*)$/);
+    if (m) {
+      creds.push({ svc: m[1], host: m[2] + ":" + m[3], user: m[4], pass: m[5] || "", raw: line });
+      return;
+    }
+    // 未授权访问: [+] Redis:IP:PORT unauthorized / 未授权
+    m = line.match(/^\[\+\]\s*([A-Za-z][\w\-]{1,20})\s*[:：]\s*((?:\d{1,3}\.){3}\d{1,3}|\S+)[:：]?\d*\s*(unauthorized|未授权.*)$/i);
+    if (m) { vulns.push({ type: m[1] + " 未授权访问", host: m[2], raw: line }); return; }
+    // MS17-010 / MS19-070 等
+    if (/MS\d{2}-\d{3}/i.test(line)) {
+      vulns.push({ type: (line.match(/MS\d{2}-\d{3}/i) || ["MS漏洞"])[0], host: ipm ? ipm[1] : "-", raw: line });
+      return;
+    }
+    // POC 结果: [+] Poc: http://... poc-yaml-xxx
+    m = line.match(/^\[\+\]\s*Poc[:：]?\s*(\S+)\s*(.*)$/i);
+    if (m) { vulns.push({ type: "POC: " + (m[2] || "命中"), host: m[1], raw: line }); return; }
+    // WebTitle
+    m = line.match(/^\[\*\]\s*WebTitle\s+(\S+)\s+Code[:：](\d+)\s+Len[:：](\d+)\s+Title[:：](.*)$/i);
+    if (m) { sites.push({ url: m[1], code: m[2], len: m[3], title: m[4].trim() }); return; }
+    // NetBios
+    m = line.match(/^\[\*\]\s*NetBios[:：]\s*(\S+)\s+(.*)$/i);
+    if (m) { netbios.push({ host: m[1], info: m[2].trim() }); return; }
+    // InfoScan / 操作系统等
+    m = line.match(/^\[\*\]\s*InfoScan[:：]\s*(\S+)\s+(.*)$/i);
+    if (m) { infos.push({ host: m[1], info: m[2].trim() }); return; }
+    // 端口开放: open IP:PORT 或 [*] IP:PORT open
+    m = line.match(/^open\s+((?:\d{1,3}\.){3}\d{1,3})[:：](\d+)\s*$/i)
+     || line.match(/^\[\*\]\s*((?:\d{1,3}\.){3}\d{1,3})[:：](\d+)\s+open/i);
+    if (m) { (portMap[m[1]] = portMap[m[1]] || []).push(m[2]); return; }
+    // 其它 [+] 发现（疑似漏洞/弱口令线索，归入漏洞区人工确认）
+    if (/^\[\+\]/.test(line)) {
+      vulns.push({ type: "其它发现", host: ipm ? ipm[1] : "-", raw: line });
+      return;
+    }
+    unparsed.push(line);
+  });
+
+  // 汇总统计
+  var portCount = 0, hostsWithPorts = Object.keys(portMap);
+  hostsWithPorts.forEach(function(ip){ portCount += portMap[ip].length; ipSet[ip] = 1; });
+  var hosts = Object.keys(ipSet).length;
+
+  var statsHtml = "";
+  statsHtml += statCard(hosts, "目标主机");
+  statsHtml += statCard(portCount, "开放端口");
+  statsHtml += statCard(creds.length, "暴破成功", creds.length ? "danger" : "");
+  statsHtml += statCard(vulns.length, "漏洞/风险", vulns.length ? "warn" : "");
+  statsHtml += statCard(sites.length, "站点标题");
+
+  var s = "";
+  // 1. 凭据
+  s += sectionCard("暴破成功 / 获取凭据", "bg-danger2", creds.length,
+    table(["服务", "地址", "用户名", "密码"], creds.map(function(c){
+      return "<tr><td><span class='sp-badge bg-danger2'>" + esc(c.svc) + "</span></td>"
+        + "<td class='sp-ip'>" + esc(c.host) + "</td><td>" + esc(c.user) + "</td>"
+        + "<td class='sp-secret'>" + esc(c.pass || "(空)") + "</td></tr>";
+    }), "暂无暴破成功记录"));
+  // 2. 漏洞风险
+  s += sectionCard("漏洞 / 风险发现", "bg-orange", vulns.length,
+    table(["类型", "目标", "原始行"], vulns.map(function(v){
+      return "<tr><td><span class='sp-badge bg-orange'>" + esc(v.type) + "</span></td>"
+        + "<td class='sp-ip'>" + esc(v.host) + "</td><td class='sp-secret'>" + esc(v.raw) + "</td></tr>";
+    }), "暂无漏洞/风险记录"));
+  // 3. 站点信息
+  s += sectionCard("站点信息（WebTitle）", "bg-blue", sites.length,
+    table(["URL", "状态码", "标题"], sites.map(function(x){
+      return "<tr><td class='sp-ip'>" + esc(x.url) + "</td><td>" + esc(x.code) + "</td><td>" + esc(x.title) + "</td></tr>";
+    }), "暂无站点记录"));
+  // 4. NetBios / 域信息
+  if (netbios.length) {
+    s += sectionCard("NetBios / 域信息", "bg-purple", netbios.length,
+      table(["主机", "信息"], netbios.map(function(x){
+        return "<tr><td class='sp-ip'>" + esc(x.host) + "</td><td class='sp-secret'>" + esc(x.info) + "</td></tr>";
+      })));
+  }
+  // 5. 端口聚合
+  if (hostsWithPorts.length) {
+    var rows = hostsWithPorts.map(function(ip){
+      var ps = portMap[ip].sort(function(a,b){ return +a - +b; });
+      return "<tr><td class='sp-ip'>" + esc(ip) + "</td><td>" + ps.length + "</td><td class='sp-secret'>" + esc(ps.join(", ")) + "</td></tr>";
+    });
+    s += sectionCard("开放端口聚合", "bg-green", portCount,
+      table(["主机", "端口数", "端口列表"], rows));
+  }
+  // 6. 未识别
+  if (unparsed.length) {
+    s += '<div class="sp-card"><details class="sp-raw"><summary>未识别行（' + unparsed.length + ' 条，点击展开原始内容）</summary>'
+      + '<div class="sp-raw-pre">' + esc(unparsed.join("\n")) + '</div></details></div>';
+  }
+
+  return {
+    statsHtml: statsHtml, sectionsHtml: s,
+    data: { hosts: hosts, portCount: portCount, creds: creds, vulns: vulns,
+            sites: sites, netbios: netbios, portMap: portMap }
+  };
+}
+
+/* =========================================================
+ * Nmap / Masscan / 安全日志解析
+ * ======================================================= */
+function genericResult(title, columns, records, summary, unparsed) {
+  var statsHtml = Object.keys(summary).map(function(k){
+    return statCard(summary[k], k, /risk|fail|风险|失败/i.test(k) && summary[k] ? "warn" : "");
+  }).join("");
+  var renderLimit = 1000, visibleRecords = records.slice(0, renderLimit);
+  var rows = visibleRecords.map(function(r){
+    return "<tr>" + columns.map(function(c){ return "<td class='sp-secret'>" + esc(r[c.key]) + "</td>"; }).join("") + "</tr>";
+  });
+  var html = sectionCard(title, "bg-blue", records.length,
+    table(columns.map(function(c){ return c.label; }), rows, "未解析到记录"));
+  if (records.length > renderLimit) {
+    html = '<div class="sp-note">结果共 <b>' + records.length + '</b> 条，为保证页面流畅仅展示前 '
+      + renderLimit + ' 条；统计和导出仍包含全部结果。</div>' + html;
+  }
+  if (unparsed && unparsed.length) {
+    var visibleUnparsed = unparsed.slice(0, renderLimit);
+    html += '<div class="sp-card"><details class="sp-raw"><summary>未识别行（' + unparsed.length
+      + ' 条，最多展示 ' + renderLimit + ' 条）</summary><div class="sp-raw-pre">' + esc(visibleUnparsed.join("\n")) + '</div></details></div>';
+  }
+  return { statsHtml: statsHtml, sectionsHtml: html,
+    data: { title: title, columns: columns, records: records, summary: summary } };
+}
+
+function parseNmap(text) {
+  var host = "", hostname = "", records = [], hosts = {}, open = 0, filtered = 0, unparsed = [];
+  text.split(/\r?\n/).forEach(function(raw){
+    var line = raw.trim(), m;
+    if (!line) return;
+    m = line.match(/^Nmap scan report for\s+(.+?)(?:\s+\(((?:\d{1,3}\.){3}\d{1,3})\))?$/i);
+    if (m) {
+      hostname = m[2] ? m[1] : ""; host = m[2] || m[1]; hosts[host] = 1; return;
+    }
+    m = line.match(/^(\d+)\/(tcp|udp|sctp)\s+(open(?:\|filtered)?|filtered|closed)\s+(\S+)(?:\s+(.*))?$/i);
+    if (m && host) {
+      records.push({ host: host, hostname: hostname, port: m[1], protocol: m[2], state: m[3], service: m[4], version: m[5] || "" });
+      if (m[3].toLowerCase() === "open") open++; else if (/filtered/i.test(m[3])) filtered++;
+      return;
+    }
+    if (!/^(Starting Nmap|Nmap done|Host is up|PORT\s+STATE|Not shown:|Service detection performed|MAC Address:)/i.test(line)) unparsed.push(line);
+  });
+  return genericResult("Nmap 主机与服务", [
+    {key:"host",label:"主机"},{key:"hostname",label:"主机名"},{key:"port",label:"端口"},
+    {key:"protocol",label:"协议"},{key:"state",label:"状态"},{key:"service",label:"服务"},{key:"version",label:"版本"}
+  ], records, {"主机":Object.keys(hosts).length,"记录":records.length,"开放端口":open,"过滤端口":filtered}, unparsed);
+}
+
+function parseMasscan(text) {
+  var records = [], hosts = {}, ports = {}, unparsed = [];
+  text.split(/\r?\n/).forEach(function(raw){
+    var line = raw.trim(), m;
+    if (!line || /^#/.test(line)) return;
+    m = line.match(/^Discovered open port\s+(\d+)\/(tcp|udp)\s+on\s+((?:\d{1,3}\.){3}\d{1,3})/i)
+      || line.match(/^open\s+(tcp|udp)\s+(\d+)\s+((?:\d{1,3}\.){3}\d{1,3})(?:\s+(\d+))?/i);
+    if (m) {
+      var listMode = /^open\s/i.test(line);
+      var protocol = listMode ? m[1] : m[2], port = listMode ? m[2] : m[1], host = m[3];
+      records.push({ host: host, port: port, protocol: protocol.toLowerCase(), state: "open" });
+      hosts[host] = 1; ports[port + "/" + protocol] = 1; return;
+    }
+    unparsed.push(line);
+  });
+  return genericResult("Masscan 开放端口", [
+    {key:"host",label:"主机"},{key:"port",label:"端口"},{key:"protocol",label:"协议"},{key:"state",label:"状态"}
+  ], records, {"主机":Object.keys(hosts).length,"开放端口":records.length,"唯一服务":Object.keys(ports).length}, unparsed);
+}
+
+function parseSecurityLog(text) {
+  var records = [], ips = {}, categories = {}, unparsed = [];
+  var suspicious = /(?:\.\.[\\/]|<script|union\s+select|select.+from|cmd=|\/etc\/passwd|powershell|wget\s|curl\s|jndi:|wp-login|\.env\b)/i;
+  text.split(/\r?\n/).forEach(function(raw){
+    var line = raw.trim(); if (!line) return;
+    var ipm = line.match(/(?:^|\s|from\s|client[:=]\s*)((?:\d{1,3}\.){3}\d{1,3})(?=\s|:|$)/i);
+    var ip = ipm ? ipm[1] : "-", category = "", severity = "信息";
+    if (/Failed password|authentication failure|invalid user|4625/i.test(line)) { category = "登录失败"; severity = "中"; }
+    else if (/Accepted (?:password|publickey)|session opened|4624/i.test(line)) { category = "登录成功"; severity = "信息"; }
+    else if (suspicious.test(line)) { category = "可疑请求"; severity = "高"; }
+    else if (/\s(?:401|403|404|429|500|502|503)\s/.test(line)) { category = "Web 异常状态"; severity = /\s5\d\d\s/.test(line) ? "中" : "低"; }
+    else if (/sudo:|su:|new process|process creation|4688/i.test(line)) { category = "特权/进程活动"; severity = "中"; }
+    if (!category) { unparsed.push(line); return; }
+    records.push({ category: category, severity: severity, ip: ip, event: line });
+    if (ip !== "-") ips[ip] = 1; categories[category] = (categories[category] || 0) + 1;
+  });
+  return genericResult("安全日志事件", [
+    {key:"severity",label:"级别"},{key:"category",label:"分类"},{key:"ip",label:"IP"},{key:"event",label:"原始事件"}
+  ], records, {"事件":records.length,"相关 IP":Object.keys(ips).length,"高风险":records.filter(function(x){return x.severity==="高";}).length,"登录失败":categories["登录失败"]||0}, unparsed);
+}
+
+function parseNuclei(text) {
+  var records=[],unparsed=[],hosts={},severity={};
+  text.split(/\r?\n/).forEach(function(line){if(!line.trim())return;try{var x=JSON.parse(line),info=x.info||{},sev=String(info.severity||x.severity||'unknown').toLowerCase(),host=x.host||x['matched-at']||x.url||'';records.push({severity:sev,id:x['template-id']||x.templateID||'',name:info.name||'',host:host,matcher:x['matcher-name']||'',extracted:(x['extracted-results']||[]).join(', ')});hosts[host]=1;severity[sev]=(severity[sev]||0)+1}catch(e){unparsed.push(line)}});
+  return genericResult('Nuclei 漏洞结果', [{key:'severity',label:'等级'},{key:'id',label:'模板 ID'},{key:'name',label:'名称'},{key:'host',label:'目标'},{key:'matcher',label:'匹配器'},{key:'extracted',label:'提取结果'}], records,
+    {'目标':Object.keys(hosts).filter(Boolean).length,'结果':records.length,'高危':(severity.high||0)+(severity.critical||0),'中危':severity.medium||0},unparsed);
+}
+
+function detectCsvDelimiter(text) {
+  var sample=(text.split(/\r?\n/).find(function(x){return x.trim()})||""),scores={",":0,";":0,"\t":0},quoted=false;
+  for(var i=0;i<sample.length;i++){var c=sample[i];if(c==='"'){if(quoted&&sample[i+1]==='"')i++;else quoted=!quoted}else if(!quoted&&scores[c]!==undefined)scores[c]++}
+  return Object.keys(scores).sort(function(a,b){return scores[b]-scores[a]})[0]||",";
+}
+function parseCsv(text) {
+  text=String(text||"").replace(/^\ufeff/,"");var delimiter=detectCsvDelimiter(text);
+  var rows=[],row=[],field='',quoted=false;
+  for(var i=0;i<text.length;i++){var c=text[i];if(quoted){if(c==='"'&&text[i+1]==='"'){field+='"';i++}else if(c==='"')quoted=false;else field+=c}else if(c==='"')quoted=true;else if(c===delimiter){row.push(field);field=''}else if(c==='\n'){row.push(field.replace(/\r$/,''));rows.push(row);row=[];field=''}else field+=c}
+  if(field||row.length){row.push(field);rows.push(row)}return rows;
+}
+function parseNessus(text) {
+  var rows=parseCsv(text),normalizeHead=function(x){return x.replace(/^\ufeff/,"").trim().toLowerCase().replace(/[ _-]+/g,"")},head=(rows.shift()||[]).map(normalizeHead),idx=function(){for(var i=0;i<arguments.length;i++){var n=head.indexOf(normalizeHead(arguments[i]));if(n>=0)return n}return -1},at=function(r,n){return n>=0?String(r[n]||'').trim():''};
+  var iName=idx('name','plugin name'),iRisk=idx('risk','severity'),iHost=idx('host','hostname','ip address'),iPort=idx('port'),iProto=idx('protocol'),iId=idx('plugin id','pluginid'),iSynopsis=idx('synopsis','description'),hosts={},risk={};
+  var records=rows.filter(function(r){return r.some(Boolean)}).map(function(r){var host=at(r,iHost),level=at(r,iRisk)||'None';hosts[host]=1;risk[level.toLowerCase()]=(risk[level.toLowerCase()]||0)+1;return {risk:level,host:host,port:at(r,iPort),protocol:at(r,iProto),plugin:at(r,iId),name:at(r,iName),synopsis:at(r,iSynopsis)}});
+  var invalid=[];
+  if(!head.length)invalid.push('CSV 文件为空或无法读取表头');
+  if(iHost<0||iName<0)invalid.push('未识别 Nessus 表头，需要至少包含 Host 和 Name（或 Plugin Name）列；当前表头：'+head.join(', '));
+  return genericResult('Nessus 漏洞结果',[{key:'risk',label:'风险'},{key:'host',label:'主机'},{key:'port',label:'端口'},{key:'protocol',label:'协议'},{key:'plugin',label:'Plugin ID'},{key:'name',label:'名称'},{key:'synopsis',label:'摘要'}],records,
+    {'主机':Object.keys(hosts).filter(Boolean).length,'结果':records.length,'Critical':risk.critical||0,'High':risk.high||0},invalid);
+}
+
+function parseWebDiscovery(text) {
+  var records=[],unparsed=[],status={};
+  try{var json=JSON.parse(text);if(Array.isArray(json.results))json.results.forEach(function(x){var s=String(x.status||''),url=x.url||((json.config&&json.config.url)||'').replace('FUZZ',x.input&&x.input.FUZZ||'');records.push({status:s,size:x.length||x.words||'',url:url,source:'ffuf',redirect:x.redirectlocation||''});status[s]=(status[s]||0)+1})}
+  catch(e){text.split(/\r?\n/).forEach(function(line){if(!line.trim())return;var m=line.match(/^\s*(\d{3})\s+(?:-\s+)?(?:\d+[A-Z]*\s+)?(https?:\/\/\S+|\/\S+)/i)||line.match(/^(https?:\/\/\S+|\/\S+)\s+\(Status:\s*(\d{3})\)/i);if(m){var reversed=/^https?:|^\//.test(m[1]),s=reversed?m[2]:m[1],url=reversed?m[1]:m[2];records.push({status:s,size:'',url:url,source:'dirsearch/gobuster',redirect:''});status[s]=(status[s]||0)+1}else unparsed.push(line)})}
+  return genericResult('Web 目录/路径发现',[{key:'status',label:'状态码'},{key:'size',label:'大小'},{key:'url',label:'URL/路径'},{key:'source',label:'来源'},{key:'redirect',label:'重定向'}],records,
+    {'结果':records.length,'2xx':Object.keys(status).filter(function(s){return /^2/.test(s)}).reduce(function(n,s){return n+status[s]},0),'3xx':Object.keys(status).filter(function(s){return /^3/.test(s)}).reduce(function(n,s){return n+status[s]},0),'4xx':Object.keys(status).filter(function(s){return /^4/.test(s)}).reduce(function(n,s){return n+status[s]},0)},unparsed);
+}
+
+/* =========================================================
+ * mimikatz 解析
+ * ======================================================= */
+function parseMimikatz(text) {
+  var lines = text.split(/\r?\n/);
+  var creds = [];
+  var section = "", blockDomain = "", cur = {};
+
+  function flush() {
+    if (cur.user && (cur.pass !== undefined || cur.ntlm || cur.sha1 || cur.lm)) {
+      creds.push({
+        user: cur.user, domain: cur.domain || blockDomain || "-",
+        pass: cur.pass, ntlm: cur.ntlm, sha1: cur.sha1, lm: cur.lm,
+        section: section || "unknown"
+      });
+    }
+    cur = {};
+  }
+
+  lines.forEach(function(raw){
+    var line = raw.replace(/\s+$/, "");
+    var m;
+    if (/^Authentication Id\s*:/i.test(line)) { flush(); section = ""; return; }
+    m = line.match(/^\s*User Name\s*:\s*(.*)$/i);
+    if (m) return; // 块级用户名，仅作上下文
+    m = line.match(/^\s*Domain\s*:\s*(.*)$/i);
+    if (m) { blockDomain = m[1].trim(); return; }
+    // 协议分段: msv / tspkg / wdigest / kerberos / ssp / credman ...
+    m = line.match(/^\s*(msv|tspkg|wdigest|kerberos|ssp|credman|livessp|dpapi|cloudap)\s*:/i);
+    if (m) { flush(); section = m[1].toLowerCase(); return; }
+    // sekurlsa 凭据字段
+    m = line.match(/^\s*\*\s*Username\s*:\s*(.*)$/i);
+    if (m) { flush(); cur.user = m[1].trim(); cur.section = section; return; }
+    m = line.match(/^\s*\*\s*Domain\s*:\s*(.*)$/i);
+    if (m) { cur.domain = m[1].trim(); return; }
+    m = line.match(/^\s*\*\s*Password\s*:\s*(.*)$/i);
+    if (m) { cur.pass = m[1].trim(); return; }
+    m = line.match(/^\s*\*\s*NTLM\s*:\s*([0-9a-fA-F]{32})/);
+    if (m) { cur.ntlm = m[1].toLowerCase(); return; }
+    m = line.match(/^\s*\*\s*SHA1\s*:\s*([0-9a-fA-F]{40})/);
+    if (m) { cur.sha1 = m[1].toLowerCase(); return; }
+    // lsadump::sam / dcsync:  User : xxx + Hash NTLM: xxx
+    m = line.match(/^\s*User\s*:\s*(\S+)\s*$/i);
+    if (m) { flush(); cur.user = m[1].trim(); cur.section = section || "sam/dcsync"; return; }
+    m = line.match(/^\s*(?:Hash\s*)?(NTLM|LM)\s*[:：]\s*([0-9a-fA-F]{32})/i);
+    if (m) {
+      if (m[1].toUpperCase() === "NTLM") { cur.ntlm = m[2].toLowerCase(); flush(); }
+      else { cur.lm = m[2].toLowerCase(); }
+      return;
+    }
+  });
+  flush();
+
+  // 去重（用户+域+机密内容）
+  var seen = {}, uniq = [];
+  creds.forEach(function(c){
+    var secret = c.pass && c.pass !== "(null)" ? "p:" + c.pass : (c.ntlm ? "n:" + c.ntlm : "l:" + (c.lm || ""));
+    var key = (c.user + "|" + c.domain + "|" + secret).toLowerCase();
+    if (!seen[key]) { seen[key] = 1; uniq.push(c); }
+  });
+
+  // 分类统计
+  var plain = uniq.filter(function(c){ return c.pass && c.pass !== "(null)"; });
+  var emptyPass = uniq.filter(function(c){ return c.pass === "(null)" || c.pass === ""; });
+  var hashes = uniq.filter(function(c){ return c.ntlm; });
+  var users = {}; uniq.forEach(function(c){ users[c.user.toLowerCase()] = 1; });
+
+  var statsHtml = "";
+  statsHtml += statCard(uniq.length, "凭据条目");
+  statsHtml += statCard(plain.length, "明文密码", plain.length ? "danger" : "");
+  statsHtml += statCard(hashes.length, "NTLM 哈希");
+  statsHtml += statCard(Object.keys(users).length, "唯一用户");
+  statsHtml += statCard(emptyPass.length, "空密码", emptyPass.length ? "warn" : "");
+
+  // 表格
+  var rows = uniq.map(function(c){
+    var typeBadge, secret;
+    if (c.pass && c.pass !== "(null)") { typeBadge = "<span class='sp-badge bg-danger2'>明文</span>"; secret = c.pass; }
+    else if (c.pass === "(null)" || c.pass === "") { typeBadge = "<span class='sp-badge bg-gray'>空密码</span>"; secret = "(null)"; }
+    else { typeBadge = "<span class='sp-badge bg-purple'>哈希</span>"; secret = c.ntlm || c.lm || "-"; }
+    return "<tr><td>" + typeBadge + "</td><td>" + esc(c.user) + "</td><td>" + esc(c.domain) + "</td>"
+      + "<td class='sp-secret'>" + esc(secret) + "</td><td><span class='sp-badge bg-blue'>" + esc(c.section) + "</span></td></tr>";
+  });
+
+  var s = "";
+  s += '<div class="sp-card"><div class="sp-card-title"><i class="bi bi-key"></i>提取的凭据'
+    + '<span style="flex:1"></span>'
+    + '<button class="sp-btn sp-btn-secondary sp-btn-mini" onclick="copyList(\'plain\')"><i class="bi bi-clipboard" title="复制明文列表"></i></button>'
+    + '<button class="sp-btn sp-btn-secondary sp-btn-mini" onclick="copyList(\'hash\')"><i class="bi bi-clipboard" title="复制哈希列表"></i></button>'
+    + '</div>'
+    + table(["类型", "用户名", "域", "密码 / 哈希", "来源"], rows, "未解析到凭据") + '</div>';
+
+  s += '<div class="sp-note">导出格式：明文 <code>域\\用户 密码</code>；哈希 <code>用户::域:NTLM</code>（可直接用于 hashcat -m 1000）。</div>';
+
+  // 供复制/导出使用
+  window._mimiCreds = uniq;
+
+  return {
+    statsHtml: statsHtml, sectionsHtml: s,
+    data: { creds: uniq, plainCount: plain.length, hashCount: hashes.length,
+            userCount: Object.keys(users).length, emptyCount: emptyPass.length }
+  };
+}
+
+function showSpToast(msg) {
+  var t = document.getElementById("spToast");
+  t.textContent = msg;
+  t.style.display = "block";
+  clearTimeout(showSpToast._timer);
+  showSpToast._timer = setTimeout(function(){ t.style.display = "none"; }, 2000);
+}
+
+function copyList(kind) {
+  var list = window._mimiCreds || [];
+  var out = [];
+  list.forEach(function(c){
+    if (kind === "plain" && c.pass && c.pass !== "(null)") {
+      out.push(c.domain + "\\" + c.user + " " + c.pass);
+    } else if (kind === "hash" && c.ntlm) {
+      out.push(c.user + "::" + c.domain + ":" + c.ntlm);
+    }
+  });
+  if (!out.length) {
+    showSpToast(kind === "plain" ? "没有明文密码记录" : "没有 NTLM 哈希记录");
+    return;
+  }
+  var text = out.join("\n");
+  if (navigator.clipboard) { navigator.clipboard.writeText(text); }
+  else {
+    var ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand("copy"); document.body.removeChild(ta);
+  }
+  showSpToast((kind === "plain" ? "明文列表" : "哈希列表") + "已复制（" + out.length + " 条）");
+}
+
+/* =========================================================
+ * 报告导出（TXT / Excel / Markdown / PDF，全部本地生成）
+ * ======================================================= */
+function getParseResult() {
+  if (!window._lastParse) { alert("请先解析内容"); return null; }
+  return window._lastParse;
+}
+function stamp() {
+  var d = new Date();
+  function p(n){ return (n < 10 ? "0" : "") + n; }
+  return "" + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "_" + p(d.getHours()) + p(d.getMinutes());
+}
+function downloadFile(filename, content, mime) {
+  var blob = new Blob([content], { type: mime || "text/plain;charset=utf-8" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 5000);
+}
+function xmlEsc(v) {
+  return String(v == null ? "" : v)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+}
+function credType(c) {
+  if (c.pass && c.pass !== "(null)") return "明文";
+  if (c.pass === "(null)" || c.pass === "") return "空密码";
+  return "哈希";
+}
+function credSecret(c) {
+  if (c.pass && c.pass !== "(null)") return c.pass;
+  if (c.pass === "(null)" || c.pass === "") return "(null)";
+  return c.ntlm || c.lm || "-";
+}
+
+function exportReport(kind) {
+  var rp = getParseResult();
+  if (!rp) return;
+  var base = rp.tab + "_报告_" + stamp();
+  if (kind === "txt") { downloadFile(base + ".txt", buildTxt(rp)); return; }
+  if (kind === "md") { downloadFile(base + ".md", buildMd(rp), "text/markdown;charset=utf-8"); return; }
+  if (kind === "excel") { downloadFile(base + ".xls", buildExcel(rp), "application/vnd.ms-excel"); return; }
+  if (kind === "pdf") {
+    var w = window.open("", "_blank");
+    if (!w) { alert("请允许浏览器弹出窗口后再导出 PDF"); return; }
+    w.document.write("<!DOCTYPE html><html><head><meta charset='utf-8'><title>" + xmlEsc(base) + "</title><style>"
+      + "body{font-family:'Microsoft YaHei','SimSun',sans-serif;color:#333;padding:24px;}"
+      + "h1{font-size:20px;border-bottom:2px solid #00e5ff;padding-bottom:8px;}"
+      + "h2{font-size:15px;margin-top:20px;color:#00e5ff;}"
+      + "table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px;}"
+      + "th,td{border:1px solid #bbb;padding:5px 8px;text-align:left;word-break:break-all;}"
+      + "th{background:#f1f3f5;}"
+      + "</style></head><body>" + buildHtmlReport(rp) + "</body></html>");
+    w.document.close();
+    w.focus();
+    setTimeout(function(){ w.print(); }, 400);
+  }
+}
+
+/* ---------- TXT ---------- */
+function buildTxt(rp) {
+  var L = [], sep = "==================================================";
+  if (rp.tab === "fscan") {
+    var d = rp.data;
+    L.push(sep, "fscan 报告解析报告", "生成时间: " + rp.time, sep, "");
+    L.push("[概览] 目标主机: " + d.hosts + " | 开放端口: " + d.portCount + " | 暴破成功: " + d.creds.length + " | 漏洞风险: " + d.vulns.length + " | 站点: " + d.sites.length, "");
+    L.push("-- 暴破成功 / 凭据 (" + d.creds.length + ") --");
+    d.creds.forEach(function(c){ L.push("[" + c.svc + "] " + c.host + "  用户名: " + c.user + "  密码: " + (c.pass || "(空)")); });
+    L.push("", "-- 漏洞 / 风险发现 (" + d.vulns.length + ") --");
+    d.vulns.forEach(function(v){ L.push("[" + v.type + "] " + v.host + "  <= " + v.raw); });
+    L.push("", "-- 站点信息 (" + d.sites.length + ") --");
+    d.sites.forEach(function(x){ L.push(x.url + "  Code:" + x.code + "  Title:" + x.title); });
+    if (d.netbios.length) {
+      L.push("", "-- NetBios / 域信息 (" + d.netbios.length + ") --");
+      d.netbios.forEach(function(x){ L.push(x.host + "  " + x.info); });
+    }
+    var ips = Object.keys(d.portMap);
+    if (ips.length) {
+      L.push("", "-- 开放端口 --");
+      ips.forEach(function(ip){ L.push(ip + " : " + d.portMap[ip].sort(function(a,b){ return +a - +b; }).join(", ")); });
+    }
+  } else if (rp.tab === "mimikatz") {
+    var cs = rp.data.creds;
+    L.push(sep, "mimikatz 凭据解析报告", "生成时间: " + rp.time, sep, "");
+    L.push("[概览] 凭据条目: " + cs.length + " | 明文: " + rp.data.plainCount + " | NTLM: " + rp.data.hashCount + " | 唯一用户: " + rp.data.userCount + " | 空密码: " + rp.data.emptyCount, "");
+    L.push("-- 凭据明细 --");
+    cs.forEach(function(c){
+      L.push("[" + credType(c) + "] " + c.domain + "\\" + c.user + "  =>  " + credSecret(c) + "  (来源: " + c.section + ")");
+    });
+  } else {
+    L.push(sep, rp.data.title + " 解析报告", "生成时间: " + rp.time, sep, "");
+    L.push("[概览] " + Object.keys(rp.data.summary).map(function(k){ return k + ": " + rp.data.summary[k]; }).join(" | "), "");
+    L.push(rp.data.columns.map(function(c){ return c.label; }).join("\t"));
+    rp.data.records.forEach(function(r){ L.push(rp.data.columns.map(function(c){ return r[c.key] || ""; }).join("\t")); });
+  }
+  return L.join("\r\n");
+}
+
+/* ---------- Excel（XML Spreadsheet 格式，无第三方依赖） ---------- */
+function buildExcel(rp) {
+  function cell(v){ return "<Cell><Data ss:Type=\"String\">" + xmlEsc(v) + "</Data></Cell>"; }
+  function row(arr){ return "<Row>" + arr.map(cell).join("") + "</Row>"; }
+  function sheet(name, header, rows) {
+    return "<Worksheet ss:Name=\"" + xmlEsc(name) + "\"><Table>" + row(header)
+      + rows.map(function(r){ return row(r); }).join("") + "</Table></Worksheet>";
+  }
+  var sheets = [];
+  if (rp.tab === "fscan") {
+    var d = rp.data;
+    sheets.push(sheet("概览", ["项目", "数值"], [
+      ["生成时间", rp.time], ["目标主机数", d.hosts], ["开放端口数", d.portCount],
+      ["暴破成功", d.creds.length], ["漏洞/风险", d.vulns.length], ["站点", d.sites.length]
+    ]));
+    sheets.push(sheet("凭据", ["服务", "地址", "用户名", "密码"],
+      d.creds.map(function(c){ return [c.svc, c.host, c.user, c.pass || "(空)"]; })));
+    sheets.push(sheet("漏洞风险", ["类型", "目标", "原始行"],
+      d.vulns.map(function(v){ return [v.type, v.host, v.raw]; })));
+    sheets.push(sheet("站点信息", ["URL", "状态码", "标题"],
+      d.sites.map(function(x){ return [x.url, x.code, x.title]; })));
+    var portRows = Object.keys(d.portMap).map(function(ip){
+      return [ip, d.portMap[ip].length, d.portMap[ip].sort(function(a,b){ return +a - +b; }).join(", ")];
+    });
+    if (portRows.length) sheets.push(sheet("开放端口", ["主机", "端口数", "端口列表"], portRows));
+  } else if (rp.tab === "mimikatz") {
+    sheets.push(sheet("概览", ["项目", "数值"], [
+      ["生成时间", rp.time], ["凭据条目", rp.data.creds.length], ["明文密码", rp.data.plainCount],
+      ["NTLM 哈希", rp.data.hashCount], ["唯一用户", rp.data.userCount], ["空密码", rp.data.emptyCount]
+    ]));
+    sheets.push(sheet("凭据", ["类型", "用户名", "域", "密码/哈希", "来源"],
+      rp.data.creds.map(function(c){ return [credType(c), c.user, c.domain, credSecret(c), c.section]; })));
+  } else {
+    sheets.push(sheet("概览", ["项目", "数值"], Object.keys(rp.data.summary).map(function(k){ return [k, rp.data.summary[k]]; })));
+    sheets.push(sheet("解析结果", rp.data.columns.map(function(c){ return c.label; }),
+      rp.data.records.map(function(r){ return rp.data.columns.map(function(c){ return r[c.key] || ""; }); })));
+  }
+  return "<?xml version=\"1.0\"?>\n<?mso-application progid=\"Excel.Sheet\"?>\n"
+    + "<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\">"
+    + sheets.join("") + "</Workbook>";
+}
+
+/* ---------- Markdown ---------- */
+function mdEsc(v) { return String(v == null ? "" : v).replace(/\|/g, "\\|").replace(/\r?\n/g, " "); }
+function buildMd(rp) {
+  var L = [];
+  if (rp.tab === "fscan") {
+    var d = rp.data;
+    L.push("# fscan 报告解析报告", "", "> 生成时间：" + rp.time, "");
+    L.push("## 概览", "", "| 项目 | 数值 |", "|---|---|",
+      "| 目标主机 | " + d.hosts + " |", "| 开放端口 | " + d.portCount + " |",
+      "| 暴破成功 | " + d.creds.length + " |", "| 漏洞/风险 | " + d.vulns.length + " |",
+      "| 站点 | " + d.sites.length + " |", "");
+    L.push("## 暴破成功 / 凭据（" + d.creds.length + "）", "", "| 服务 | 地址 | 用户名 | 密码 |", "|---|---|---|---|");
+    d.creds.forEach(function(c){ L.push("| " + mdEsc(c.svc) + " | " + mdEsc(c.host) + " | " + mdEsc(c.user) + " | " + mdEsc(c.pass || "(空)") + " |"); });
+    L.push("", "## 漏洞 / 风险发现（" + d.vulns.length + "）", "", "| 类型 | 目标 | 原始行 |", "|---|---|---|");
+    d.vulns.forEach(function(v){ L.push("| " + mdEsc(v.type) + " | " + mdEsc(v.host) + " | " + mdEsc(v.raw) + " |"); });
+    L.push("", "## 站点信息（" + d.sites.length + "）", "", "| URL | 状态码 | 标题 |", "|---|---|---|");
+    d.sites.forEach(function(x){ L.push("| " + mdEsc(x.url) + " | " + x.code + " | " + mdEsc(x.title) + " |"); });
+    if (d.netbios.length) {
+      L.push("", "## NetBios / 域信息", "", "| 主机 | 信息 |", "|---|---|");
+      d.netbios.forEach(function(x){ L.push("| " + mdEsc(x.host) + " | " + mdEsc(x.info) + " |"); });
+    }
+    var ips = Object.keys(d.portMap);
+    if (ips.length) {
+      L.push("", "## 开放端口", "", "| 主机 | 端口数 | 端口列表 |", "|---|---|---|");
+      ips.forEach(function(ip){
+        L.push("| " + ip + " | " + d.portMap[ip].length + " | " + d.portMap[ip].sort(function(a,b){ return +a - +b; }).join(", ") + " |");
+      });
+    }
+  } else if (rp.tab === "mimikatz") {
+    L.push("# mimikatz 凭据解析报告", "", "> 生成时间：" + rp.time, "");
+    L.push("## 概览", "", "| 项目 | 数值 |", "|---|---|",
+      "| 凭据条目 | " + rp.data.creds.length + " |", "| 明文密码 | " + rp.data.plainCount + " |",
+      "| NTLM 哈希 | " + rp.data.hashCount + " |", "| 唯一用户 | " + rp.data.userCount + " |",
+      "| 空密码 | " + rp.data.emptyCount + " |", "");
+    L.push("## 凭据明细", "", "| 类型 | 用户名 | 域 | 密码/哈希 | 来源 |", "|---|---|---|---|---|");
+    rp.data.creds.forEach(function(c){
+      L.push("| " + credType(c) + " | " + mdEsc(c.user) + " | " + mdEsc(c.domain) + " | `" + mdEsc(credSecret(c)) + "` | " + mdEsc(c.section) + " |");
+    });
+  } else {
+    L.push("# " + rp.data.title + " 解析报告", "", "> 生成时间：" + rp.time, "", "## 概览", "", "| 项目 | 数值 |", "|---|---|");
+    Object.keys(rp.data.summary).forEach(function(k){ L.push("| " + mdEsc(k) + " | " + rp.data.summary[k] + " |"); });
+    L.push("", "## 解析结果", "", "| " + rp.data.columns.map(function(c){return mdEsc(c.label);}).join(" | ") + " |",
+      "|" + rp.data.columns.map(function(){return "---";}).join("|") + "|");
+    rp.data.records.forEach(function(r){ L.push("| " + rp.data.columns.map(function(c){return mdEsc(r[c.key] || "");}).join(" | ") + " |"); });
+  }
+  return L.join("\n");
+}
+
+/* ---------- PDF（打印 HTML） ---------- */
+function buildHtmlReport(rp) {
+  function htable(headers, rows) {
+    return "<table><thead><tr>" + headers.map(function(h){ return "<th>" + xmlEsc(h) + "</th>"; }).join("") + "</tr></thead><tbody>"
+      + rows.map(function(r){ return "<tr>" + r.map(function(c){ return "<td>" + xmlEsc(c) + "</td>"; }).join("") + "</tr>"; }).join("")
+      + "</tbody></table>";
+  }
+  var html = "";
+  if (rp.tab === "fscan") {
+    var d = rp.data;
+    html += "<h1>fscan 报告解析报告</h1><p>生成时间：" + xmlEsc(rp.time) + "</p>";
+    html += "<h2>概览</h2>" + htable(["项目", "数值"], [
+      ["目标主机", d.hosts], ["开放端口", d.portCount], ["暴破成功", d.creds.length],
+      ["漏洞/风险", d.vulns.length], ["站点", d.sites.length]]);
+    html += "<h2>暴破成功 / 凭据（" + d.creds.length + "）</h2>"
+      + htable(["服务", "地址", "用户名", "密码"], d.creds.map(function(c){ return [c.svc, c.host, c.user, c.pass || "(空)"]; }));
+    html += "<h2>漏洞 / 风险发现（" + d.vulns.length + "）</h2>"
+      + htable(["类型", "目标", "原始行"], d.vulns.map(function(v){ return [v.type, v.host, v.raw]; }));
+    html += "<h2>站点信息（" + d.sites.length + "）</h2>"
+      + htable(["URL", "状态码", "标题"], d.sites.map(function(x){ return [x.url, x.code, x.title]; }));
+  } else if (rp.tab === "mimikatz") {
+    html += "<h1>mimikatz 凭据解析报告</h1><p>生成时间：" + xmlEsc(rp.time) + "</p>";
+    html += "<h2>概览</h2>" + htable(["项目", "数值"], [
+      ["凭据条目", rp.data.creds.length], ["明文密码", rp.data.plainCount], ["NTLM 哈希", rp.data.hashCount],
+      ["唯一用户", rp.data.userCount], ["空密码", rp.data.emptyCount]]);
+    html += "<h2>凭据明细</h2>" + htable(["类型", "用户名", "域", "密码/哈希", "来源"],
+      rp.data.creds.map(function(c){ return [credType(c), c.user, c.domain, credSecret(c), c.section]; }));
+  } else {
+    html += "<h1>" + xmlEsc(rp.data.title) + " 解析报告</h1><p>生成时间：" + xmlEsc(rp.time) + "</p>";
+    html += "<h2>概览</h2>" + htable(["项目", "数值"], Object.keys(rp.data.summary).map(function(k){return [k,rp.data.summary[k]];}));
+    html += "<h2>解析结果</h2>" + htable(rp.data.columns.map(function(c){return c.label;}),
+      rp.data.records.map(function(r){return rp.data.columns.map(function(c){return r[c.key] || "";});}));
+  }
+  return html;
+}
+
+/* =========================================================
+ * 公共渲染函数
+ * ======================================================= */
+function statCard(num, label, cls) {
+  return '<div class="sp-stat"><div class="num ' + (cls || "") + '">' + num + '</div><div class="lbl">' + label + '</div></div>';
+}
+function table(headers, rows, emptyText) {
+  var thead = "<tr>" + headers.map(function(h){ return "<th>" + h + "</th>"; }).join("") + "</tr>";
+  var tbody = rows.length ? rows.join("") : '<tr><td colspan="' + headers.length + '" class="sp-empty">' + (emptyText || "暂无记录") + '</td></tr>';
+  return '<div style="overflow:auto;"><table class="sp-table"><thead>' + thead + '</thead><tbody>' + tbody + '</tbody></table></div>';
+}
+function sectionCard(title, badgeCls, count, bodyHtml) {
+  return '<div class="sp-card"><div class="sp-card-title">' + title
+    + ' <span class="sp-badge ' + badgeCls + '">' + count + '</span></div>' + bodyHtml + '</div>';
+}
+
+/* =========================================================
+ * 示例数据（均为虚构）
+ * ======================================================= */
+var FSCAN_SAMPLE = [
+  "[*] Icmp 192.168.88.10 is alive",
+  "open 192.168.88.10:80",
+  "open 192.168.88.10:445",
+  "open 192.168.88.10:3389",
+  "[*] WebTitle http://192.168.88.10:80 Code:200 Len:1532 Title:系统登录",
+  "[*] NetBios: 192.168.88.10 FILE01.corp.example.com, DC:dc01.corp.example.com",
+  "[*] 192.168.88.10 MS17-010 (Windows Server 2008 R2 Enterprise)",
+  "[+] Mysql:192.168.88.20:3306 root Test@12345",
+  "[+] SSH:192.168.88.30:22 admin Admin@2024",
+  "[+] Redis:192.168.88.40:6379 unauthorized",
+  "[+] Poc: http://192.168.88.50:8080 poc-yaml-example-app-rce"
+].join("\n");
+
+var MIMIKATZ_SAMPLE = [
+  "mimikatz # sekurlsa::logonpasswords",
+  "",
+  "Authentication Id : 0 ; 246088 (00000000:0003C148)",
+  "Session           : Interactive from 1",
+  "User Name         : testuser",
+  "Domain            : CORP",
+  "Logon Server      : DC01",
+  "\tmsv :",
+  "\t [00000003] Primary",
+  "\t * Username : testuser",
+  "\t * Domain   : CORP",
+  "\t * NTLM     : 31d6cfe0d16ae931b73c59d7e0c089c0",
+  "\t * SHA1     : da39a3ee5e6b4b0d3255bfef95601890afd80709",
+  "\twdigest :",
+  "\t * Username : testuser",
+  "\t * Domain   : CORP",
+  "\t * Password : Test@12345",
+  "\tkerberos :",
+  "\t * Username : testuser",
+  "\t * Domain   : CORP.EXAMPLE.COM",
+  "\t * Password : Test@12345",
+  "",
+  "mimikatz # lsadump::sam",
+  "RID  : 000001f4 (500)",
+  "User : Administrator",
+  "  Hash NTLM: aad3b435b51404eeaad3b435b51404ee"
+].join("\n");
+
+var NMAP_SAMPLE = [
+  "Nmap scan report for web01.example.local (192.168.88.10)",
+  "Host is up (0.0010s latency).", "PORT     STATE    SERVICE VERSION",
+  "22/tcp   open     ssh     OpenSSH 8.9p1 Ubuntu", "80/tcp   open     http    nginx 1.22.1",
+  "443/tcp  filtered https", "Nmap done: 1 IP address (1 host up) scanned in 2.10 seconds"
+].join("\n");
+var MASSCAN_SAMPLE = [
+  "Discovered open port 80/tcp on 192.168.88.10",
+  "Discovered open port 443/tcp on 192.168.88.10",
+  "open tcp 22 192.168.88.20 1710000000"
+].join("\n");
+var LOG_SAMPLE = [
+  "Aug 11 10:01:02 web sshd[123]: Failed password for invalid user admin from 203.0.113.8 port 55221 ssh2",
+  "Aug 11 10:02:03 web sshd[124]: Accepted publickey for ops from 192.0.2.10 port 50122 ssh2",
+  "198.51.100.20 - - [11/Aug/2026:10:03:04 +0800] \"GET /.env HTTP/1.1\" 404 153",
+  "198.51.100.21 - - [11/Aug/2026:10:04:05 +0800] \"GET /index HTTP/1.1\" 500 21"
+].join("\n");
+var NUCLEI_SAMPLE = [
+  '{"template-id":"exposed-panels","info":{"name":"Exposed Login Panel","severity":"info"},"matched-at":"https://demo.example/login","host":"https://demo.example"}',
+  '{"template-id":"example-cve","info":{"name":"Example Vulnerability","severity":"high"},"matched-at":"https://demo.example/api"}'
+].join("\n");
+var NESSUS_SAMPLE = 'Plugin ID,CVE,CVSS v3.0 Base Score,Risk,Host,Protocol,Port,Name,Synopsis\n"10001","CVE-2026-1234","8.8","High","192.0.2.10","tcp","443","Example TLS issue","Review TLS configuration"';
+var WEBSCAN_SAMPLE = JSON.stringify({results:[{status:200,length:1234,url:'https://demo.example/admin',input:{FUZZ:'admin'}},{status:403,length:80,url:'https://demo.example/.git',input:{FUZZ:'.git'}}]},null,2);
+
+function loadSample() {
+  var samples = { fscan:FSCAN_SAMPLE, nmap:NMAP_SAMPLE, masscan:MASSCAN_SAMPLE, log:LOG_SAMPLE,
+    nuclei:NUCLEI_SAMPLE, nessus:NESSUS_SAMPLE, webscan:WEBSCAN_SAMPLE, mimikatz:MIMIKATZ_SAMPLE };
+  document.getElementById("rawInput").value = samples[CURRENT_TAB];
+}
+</script>
+{% endblock %}

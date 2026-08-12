@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    {% for category, items in categories.items() %}
+    <div class="col-md-6 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header fw-bold bg-light d-flex justify-content-between align-items-center">
+                <span>{{ category }}</span>
+                <span class="badge rounded-pill bg-secondary">{{ items|length }}</span>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for item in items %}
+                <a href="{{ url_for('tools.payloader_detail', type=type, id=item.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center border-0 border-bottom">
+                    <div class="d-flex align-items-center text-truncate">
+                        <i class="bi bi-lightning-charge me-2 text-warning"></i>
+                        <span class="text-truncate" title="{{ item.name.zh if item.name is mapping else item.name }}">
+                            {% if item.name is mapping %}
+                                {{ item.name.zh }}
+                            {% else %}
+                                {{ item.name }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    <i class="bi bi-chevron-right text-muted small"></i>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

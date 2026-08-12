@@ -1,0 +1,1015 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+.email-wrap {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
+}
+
+/* 上传区域 - 可折叠 */
+.email-upload {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-bottom: 10px;
+  transition: all 0.3s;
+}
+
+.email-upload.collapsed .email-upload-body {
+  display: none;
+}
+
+.email-upload-header {
+  padding: 10px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.email-upload.collapsed .email-upload-header {
+  border-bottom: none;
+}
+
+.email-upload-header h5 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.email-upload-toggle {
+  color: #666;
+  transition: transform 0.3s;
+}
+
+.email-upload.collapsed .email-upload-toggle {
+  transform: rotate(-90deg);
+}
+
+.email-upload-body {
+  padding: 15px;
+  display: flex;
+  gap: 15px;
+}
+
+.email-upload-zone {
+  flex: 1;
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  padding: 30px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: #f8f9fa;
+}
+
+.email-upload-zone:hover, .email-upload-zone.dragover {
+  border-color: #00e5ff;
+  background: #f0f7ff;
+}
+
+.email-upload-zone .icon {
+  font-size: 32px;
+  color: #00e5ff;
+  margin-bottom: 8px;
+}
+
+.email-upload-zone p {
+  margin: 3px 0;
+  color: #666;
+}
+
+.email-upload-zone .hint {
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.email-paste {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.email-paste textarea {
+  flex: 1;
+  min-height: 100px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 8px;
+  font-family: monospace;
+  font-size: 0.85rem;
+  resize: none;
+}
+
+.email-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  padding: 10px 0;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* 结果区域 */
+.email-result {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  display: none;
+}
+
+.email-result.show {
+  display: flex;
+}
+
+/* 结果头部 - 导出按钮 */
+.email-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.email-result-header h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.email-export {
+  display: flex;
+  gap: 5px;
+}
+
+.email-export-btn {
+  padding: 5px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: #666;
+}
+
+.email-export-btn:hover {
+  background: #f8f9fa;
+  border-color: #00e5ff;
+  color: #00e5ff;
+}
+
+/* Tab导航 */
+.email-tabs-wrap {
+  display: flex;
+  background: #fff;
+  border-radius: 12px 12px 0 0;
+  box-shadow: 0 -1px 3px rgba(0,0,0,0.05);
+  flex-shrink: 0;
+}
+
+.email-main-tab {
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  color: #666;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.email-main-tab.active {
+  color: #00e5ff;
+  border-bottom-color: #00e5ff;
+  background: #fff;
+}
+
+.email-main-tab .badge {
+  background: #e9ecef;
+  color: #666;
+  padding: 1px 6px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+}
+
+.email-main-tab.active .badge {
+  background: #00e5ff;
+  color: #fff;
+}
+
+/* 内容区域 */
+.email-content {
+  flex: 1;
+  background: #fff;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.email-main-content {
+  display: none;
+  height: 100%;
+  overflow-y: auto;
+  padding: 15px;
+}
+
+.email-main-content.active {
+  display: block;
+}
+
+/* 信息卡片 */
+.email-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.email-card-title {
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.email-card-value {
+  font-size: 0.9rem;
+  color: #333;
+  word-break: break-all;
+}
+
+/* 信息表格 */
+.email-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 10px;
+}
+
+.email-info-item {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.email-info-item label {
+  font-size: 0.75rem;
+  color: #999;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.email-info-item .value {
+  font-size: 0.85rem;
+  color: #333;
+  word-break: break-all;
+}
+
+/* 列表样式 */
+.email-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.email-list li {
+  padding: 10px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.email-list li:last-child {
+  border-bottom: none;
+}
+
+.email-list li:hover {
+  background: #f8f9fa;
+}
+
+.email-list a {
+  color: #00e5ff;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.email-list .meta {
+  font-size: 0.75rem;
+  color: #999;
+  white-space: nowrap;
+  margin-left: 10px;
+}
+
+/* 附件网格 */
+.email-attachments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.email-attachment-card {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.email-attachment-card.dangerous {
+  border-color: #dc3545;
+  background: #fff5f5;
+}
+
+.att-icon {
+  width: 36px;
+  height: 36px;
+  background: #00e5ff;
+  color: #fff;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+.email-attachment-card.dangerous .att-icon {
+  background: #dc3545;
+}
+
+.att-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.att-name {
+  font-size: 0.85rem;
+  word-break: break-all;
+  margin-bottom: 2px;
+}
+
+.att-meta {
+  font-size: 0.75rem;
+  color: #999;
+}
+
+.att-download {
+  padding: 5px 10px;
+  background: #00e5ff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+/* 原始内容 */
+.email-raw {
+  background: #1a1a2e;
+  color: #e6e6e6;
+  border-radius: 8px;
+  padding: 15px;
+  font-family: monospace;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+/* 邮件正文 */
+.email-body-wrap {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.email-body-tabs {
+  display: flex;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.email-body-tab {
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.email-body-tab.active {
+  background: #fff;
+  color: #00e5ff;
+  border-bottom: 2px solid #00e5ff;
+  margin-bottom: -1px;
+}
+
+.email-body-content {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.email-body-text {
+  padding: 15px;
+  white-space: pre-wrap;
+  font-size: 0.85rem;
+}
+
+.email-body-html {
+  background: #fff;
+}
+
+.email-body-html iframe {
+  width: 100%;
+  min-height: 300px;
+  border: none;
+}
+
+/* 导出对话框 */
+.email-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+
+.email-modal.show {
+  display: flex;
+}
+
+.email-modal-content {
+  background: #fff;
+  border-radius: 8px;
+  width: 400px;
+  max-width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.email-modal-header {
+  padding: 15px;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.email-modal-header h5 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.email-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #666;
+}
+
+.email-modal-body {
+  padding: 15px;
+}
+
+.export-options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.export-option {
+  padding: 15px;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.export-option:hover {
+  border-color: #00e5ff;
+  background: #f0f7ff;
+}
+
+.export-option.selected {
+  border-color: #00e5ff;
+  background: #e7f3ff;
+}
+
+.export-option .icon {
+  font-size: 24px;
+  margin-bottom: 5px;
+}
+
+.export-option .name {
+  font-size: 0.85rem;
+  color: #333;
+}
+
+.export-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 15px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.email-modal-footer {
+  padding: 15px;
+  border-top: 1px solid #e9ecef;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* 按钮 */
+.btn-primary {
+  padding: 8px 16px;
+  background: #00e5ff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.btn-primary:hover {
+  background: #0066b3;
+}
+
+.btn-primary:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.btn-outline {
+  padding: 8px 16px;
+  background: #fff;
+  color: #666;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.btn-outline:hover {
+  background: #f8f9fa;
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+}
+
+/* 加载状态 */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  color: #666;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e9ecef;
+  border-top-color: #00e5ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+</style>
+
+<div class="container-fluid email-wrap">
+  <!-- 上传区域 -->
+  <div class="email-upload" id="uploadSection">
+    <div class="email-upload-header" onclick="toggleUpload()">
+      <h5>&#128231; 上传邮件文件</h5>
+      <span class="email-upload-toggle">&#9660;</span>
+    </div>
+    <div class="email-upload-body">
+      <div class="email-upload-zone" id="dropZone">
+        <div class="icon">&#128196;</div>
+        <p style="font-weight:500">拖放 .eml 文件到此处</p>
+        <p class="hint">或点击选择文件（最大5MB）</p>
+        <input type="file" id="fileInput" accept=".eml,.txt" style="display:none">
+      </div>
+      <div class="email-paste">
+        <label style="font-size:0.85rem;color:#666;margin-bottom:5px;display:block">或粘贴邮件原始内容：</label>
+        <textarea id="emailPaste" placeholder="粘贴邮件原始内容..."></textarea>
+      </div>
+    </div>
+    <div class="email-actions">
+      <button class="btn-primary" id="analyzeBtn" disabled>&#128269; 开始分析</button>
+    </div>
+  </div>
+
+  <!-- 结果区域 -->
+  <div class="email-result" id="emailResult">
+    <div class="email-result-header">
+      <h4>&#128221; 分析结果</h4>
+      <div class="email-export">
+        <button class="email-export-btn" onclick="showExportModal()">&#128190; 导出报告</button>
+      </div>
+    </div>
+
+    <div class="email-tabs-wrap">
+      <button class="email-main-tab active" data-tab="overview">&#128196; 概览</button>
+      <button class="email-main-tab" data-tab="body">&#128221; 正文</button>
+      <button class="email-main-tab" data-tab="links">&#128279; 链接 <span class="badge" id="linkBadge">0</span></button>
+      <button class="email-main-tab" data-tab="attachments">&#128206; 附件 <span class="badge" id="attBadge">0</span></button>
+      <button class="email-main-tab" data-tab="raw">&#128196; 原始内容</button>
+    </div>
+
+    <div class="email-content">
+      <!-- 概览 -->
+      <div id="overview" class="email-main-content active">
+        <div class="email-info-grid" id="overviewContent"></div>
+      </div>
+
+      <!-- 正文 -->
+      <div id="body" class="email-main-content">
+        <div class="email-body-wrap">
+          <div class="email-body-tabs">
+            <button class="email-body-tab active" data-body="text">纯文本</button>
+            <button class="email-body-tab" data-body="html">HTML</button>
+          </div>
+          <div class="email-body-content">
+            <div id="textBody" class="email-body-text"></div>
+            <div id="htmlBody" class="email-body-html" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 链接 -->
+      <div id="links" class="email-main-content">
+        <ul class="email-list" id="linksList"></ul>
+      </div>
+
+      <!-- 附件 -->
+      <div id="attachments" class="email-main-content">
+        <div class="email-attachments-grid" id="attachmentsList"></div>
+      </div>
+
+      <!-- 原始内容 -->
+      <div id="raw" class="email-main-content">
+        <pre class="email-raw" id="rawContent"></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 导出对话框 -->
+  <div class="email-modal" id="exportModal">
+    <div class="email-modal-content">
+      <div class="email-modal-header">
+        <h5>&#128190; 导出分析报告</h5>
+        <button class="email-modal-close" onclick="hideExportModal()">&times;</button>
+      </div>
+      <div class="email-modal-body">
+        <div class="export-options" id="exportOptions">
+          <div class="export-option" data-format="excel">
+            <div class="icon">&#128202;</div>
+            <div class="name">Excel</div>
+          </div>
+          <div class="export-option" data-format="word">
+            <div class="icon">&#128196;</div>
+            <div class="name">Word</div>
+          </div>
+          <div class="export-option" data-format="markdown">
+            <div class="icon">&#128221;</div>
+            <div class="name">Markdown</div>
+          </div>
+          <div class="export-option" data-format="html">
+            <div class="icon">&#127760;</div>
+            <div class="name">HTML</div>
+          </div>
+          <div class="export-option" data-format="pdf">
+            <div class="icon">&#128195;</div>
+            <div class="name">PDF</div>
+          </div>
+          <div class="export-option" data-format="all">
+            <div class="icon">&#128230;</div>
+            <div class="name">全部（ZIP）</div>
+          </div>
+        </div>
+        <div class="export-checkbox">
+          <input type="checkbox" id="includeAttachments" checked>
+          <label for="includeAttachments">包含附件（如果有）</label>
+        </div>
+      </div>
+      <div class="email-modal-footer">
+        <button class="btn-outline" onclick="hideExportModal()">取消</button>
+        <button class="btn-primary" onclick="exportReport()">导出</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let emailContent = '';
+let analysisData = null;
+let selectedFormat = 'excel';
+
+// 文件拖放
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const emailPaste = document.getElementById('emailPaste');
+const analyzeBtn = document.getElementById('analyzeBtn');
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', (e) => { if (e.target.files.length > 0) handleFile(e.target.files[0]); });
+emailPaste.addEventListener('input', checkInput);
+
+function checkInput() {
+  analyzeBtn.disabled = !emailContent && !emailPaste.value.trim();
+}
+
+function handleFile(file) {
+  if (file.size > 5 * 1024 * 1024) {
+    alert('文件过大，最大支持5MB');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    emailContent = e.target.result;
+    emailPaste.value = emailContent.substring(0, 2000) + (emailContent.length > 2000 ? '\n... (已截断显示)' : '');
+    analyzeBtn.disabled = false;
+    document.getElementById('uploadSection').querySelector('.email-upload-zone').innerHTML = 
+      '<div class="icon">&#9989;</div><p style="font-weight:500;color:#28a745">' + file.name + '</p><p class="hint">点击重新选择文件</p>';
+  };
+  reader.readAsText(file);
+}
+
+function toggleUpload() {
+  document.getElementById('uploadSection').classList.toggle('collapsed');
+}
+
+// 分析
+analyzeBtn.addEventListener('click', analyzeEmail);
+
+function analyzeEmail() {
+  const content = emailContent || emailPaste.value.trim();
+  if (!content) return;
+
+  analyzeBtn.disabled = true;
+  analyzeBtn.innerHTML = '&#9881; 解析中...';
+
+  fetch('/email-analyze/api', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content: content })
+  })
+  .then(res => {
+    if (!res.ok) return res.text().then(t => { throw new Error(t.substring(0, 200)); });
+    return res.json();
+  })
+  .then(data => {
+    if (data.success) {
+      analysisData = data;
+      displayResult(data);
+      document.getElementById('uploadSection').classList.add('collapsed');
+    } else {
+      alert('解析失败: ' + data.error);
+    }
+  })
+  .catch(err => alert('请求失败: ' + err.message))
+  .finally(() => {
+    analyzeBtn.disabled = false;
+    analyzeBtn.innerHTML = '&#128269; 开始分析';
+  });
+}
+
+function displayResult(data) {
+  document.getElementById('emailResult').classList.add('show');
+
+  // 快速关键信息摘要
+  const summary = document.getElementById('overviewContent');
+  const fromEmail = data.from ? (typeof data.from === 'string' ? data.from : data.from.email || '') : '';
+  const fromName = data.from && typeof data.from === 'object' ? data.from.name || '' : '';
+  const toList = (data.to || []).map(a => typeof a === 'string' ? a : a.email || '').join(', ');
+  const linkCount = (data.links || []).length;
+  const attCount = (data.attachments || []).length;
+  const dangerAtts = (data.attachments || []).filter(a => a.is_dangerous).length;
+  const phishingLinks = (data.links || []).filter(l => l.type === 'phishing-suspect').length;
+  const execLinks = (data.links || []).filter(l => l.type === 'executable').length;
+
+  // 安全风险评估
+  let riskLevel = '低';
+  let riskColor = '#28a745';
+  let riskItems = [];
+  if (dangerAtts > 0) { riskItems.push('危险附件' + dangerAtts + '个'); riskLevel = '高'; riskColor = '#dc3545'; }
+  if (phishingLinks > 0) { riskItems.push('疑似钓鱼链接' + phishingLinks + '个'); riskLevel = '高'; riskColor = '#dc3545'; }
+  if (execLinks > 0) { riskItems.push('可执行文件链接' + execLinks + '个'); if (riskLevel !== '高') { riskLevel = '中'; riskColor = '#ffc107'; } }
+
+  summary.innerHTML = `
+    <div class="email-info-item" class="email-info-highlight" style="grid-column:1/-1;border-left:4px solid #00e5ff">
+      <label>发件人</label>
+      <div class="value" style="font-size:1rem;font-weight:600">${escapeHtml(fromName ? fromName + ' <' + fromEmail + '>' : fromEmail || '(无)')}</div>
+    </div>
+    <div class="email-info-item"><label>主题</label><div class="value">${escapeHtml(data.subject || '(无)')}</div></div>
+    <div class="email-info-item"><label>日期</label><div class="value">${escapeHtml(data.date || '(未知)')}</div></div>
+    <div class="email-info-item"><label>收件人</label><div class="value">${escapeHtml(toList || '(无)')}</div></div>
+    <div class="email-info-item"><label>Message-ID</label><div class="value" style="font-size:0.75rem">${escapeHtml(data.message_id || '(无)')}</div></div>
+    <div class="email-info-item"><label>邮件大小</label><div class="value">${formatSize(data.raw_size)}</div></div>
+    <div class="email-info-item"><label>链接数量</label><div class="value">${linkCount}${phishingLinks > 0 ? ' <span style="color:#dc3545">(' + phishingLinks + '疑似钓鱼)</span>' : ''}${execLinks > 0 ? ' <span style="color:#ffc107">(' + execLinks + '可执行)</span>' : ''}</div></div>
+    <div class="email-info-item"><label>附件数量</label><div class="value">${attCount}${dangerAtts > 0 ? ' <span style="color:#dc3545">(' + dangerAtts + '危险)</span>' : ''}</div></div>
+    <div class="email-info-item" style="grid-column:1/-1;background:${riskColor}15;border-left:4px solid ${riskColor}">
+      <label>安全风险评估</label>
+      <div class="value" style="color:${riskColor};font-weight:600">${riskLevel}风险${riskItems.length > 0 ? ' - ' + riskItems.join(', ') : ' - 未发现明显风险'}</div>
+    </div>
+  `;
+
+  // 正文
+  document.getElementById('textBody').textContent = data.text_body || '(无纯文本内容)';
+  if (data.html_body) {
+    const iframe = document.createElement('iframe');
+    iframe.sandbox = 'allow-same-origin';
+    iframe.srcdoc = data.html_body;
+    document.getElementById('htmlBody').innerHTML = '';
+    document.getElementById('htmlBody').appendChild(iframe);
+  } else {
+    document.getElementById('htmlBody').innerHTML = '<div class="empty-state">无HTML内容</div>';
+  }
+
+  // 链接
+  document.getElementById('linkBadge').textContent = (data.links || []).length;
+  const linksList = document.getElementById('linksList');
+  if (data.links && data.links.length > 0) {
+    linksList.innerHTML = data.links.map(l => `
+      <li>
+        <a href="${escapeHtml(l.url)}" target="_blank" rel="noopener">${escapeHtml(l.url)}</a>
+        <span class="meta">${escapeHtml(l.type || 'link')}</span>
+      </li>
+    `).join('');
+  } else {
+    linksList.innerHTML = '<li class="empty-state">未发现链接</li>';
+  }
+
+  // 附件
+  document.getElementById('attBadge').textContent = (data.attachments || []).length;
+  const attList = document.getElementById('attachmentsList');
+  if (data.attachments && data.attachments.length > 0) {
+    attList.innerHTML = data.attachments.map((a, i) => {
+      const ext = getFileExt(a.filename);
+      const isArchive = /\.(zip|rar|7z|tar|gz|bz2)$/i.test(a.filename);
+      const isExec = /\.(exe|dll|bat|cmd|ps1|vbs|js|jar|scr|pif|com|msi)$/i.test(a.filename);
+      let warning = '';
+      if (isExec) warning = '<div style="color:#dc3545;font-size:0.7rem;margin-top:2px">&#9888; 可执行文件，可能包含恶意代码</div>';
+      else if (isArchive) warning = '<div style="color:#ffc107;font-size:0.7rem;margin-top:2px">&#9888; 压缩文件，可能包含恶意内容</div>';
+      return `
+      <div class="email-attachment-card ${a.is_dangerous ? 'dangerous' : ''}">
+        <div class="att-icon">${ext}</div>
+        <div class="att-info">
+          <div class="att-name">${escapeHtml(a.filename)}</div>
+          <div class="att-meta">${formatSize(a.size)} · ${escapeHtml(a.content_type || '未知')}</div>
+          ${warning}
+        </div>
+        <button class="att-download" onclick="downloadAttachment(${i})">下载</button>
+      </div>`;
+    }).join('');
+  } else {
+    attList.innerHTML = '<div class="empty-state" style="grid-column:1/-1">无附件</div>';
+  }
+
+  // 原始内容
+  document.getElementById('rawContent').textContent = data.raw_content;
+}
+
+function formatAddr(a) {
+  if (!a) return '(无)';
+  if (typeof a === 'string') return escapeHtml(a);
+  return a.name ? `${escapeHtml(a.name)} &lt;${escapeHtml(a.email)}&gt;` : escapeHtml(a.email || a);
+}
+
+function getFileExt(f) {
+  if (!f) return 'FILE';
+  const e = f.split('.').pop().toUpperCase();
+  return e.length <= 4 ? e : 'FILE';
+}
+
+function formatSize(b) {
+  if (!b) return '0 B';
+  const u = ['B', 'KB', 'MB', 'GB'];
+  let i = 0;
+  while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
+  return b.toFixed(i > 0 ? 1 : 0) + ' ' + u[i];
+}
+
+function escapeHtml(t) {
+  if (!t) return '';
+  const d = document.createElement('div');
+  d.textContent = t;
+  return d.innerHTML;
+}
+
+function downloadAttachment(idx) {
+  const a = analysisData.attachments[idx];
+  if (!a) return;
+  const link = document.createElement('a');
+  link.href = 'data:' + a.content_type + ';base64,' + a.data;
+  link.download = a.filename;
+  link.click();
+}
+
+// Tab切换
+document.querySelectorAll('.email-main-tab').forEach(t => {
+  t.addEventListener('click', function() {
+    document.querySelectorAll('.email-main-tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.email-main-content').forEach(x => x.classList.remove('active'));
+    this.classList.add('active');
+    document.getElementById(this.dataset.tab).classList.add('active');
+  });
+});
+
+document.querySelectorAll('.email-body-tab').forEach(t => {
+  t.addEventListener('click', function() {
+    document.querySelectorAll('.email-body-tab').forEach(x => x.classList.remove('active'));
+    this.classList.add('active');
+    const isText = this.dataset.body === 'text';
+    document.getElementById('textBody').style.display = isText ? 'block' : 'none';
+    document.getElementById('htmlBody').style.display = isText ? 'none' : 'block';
+  });
+});
+
+// 导出
+document.querySelectorAll('.export-option').forEach(o => {
+  o.addEventListener('click', function() {
+    document.querySelectorAll('.export-option').forEach(x => x.classList.remove('selected'));
+    this.classList.add('selected');
+    selectedFormat = this.dataset.format;
+  });
+});
+
+function showExportModal() {
+  document.getElementById('exportModal').classList.add('show');
+}
+
+function hideExportModal() {
+  document.getElementById('exportModal').classList.remove('show');
+}
+
+function exportReport() {
+  if (!analysisData) return;
+
+  const includeAtt = document.getElementById('includeAttachments').checked;
+
+  hideExportModal();
+
+  // 创建表单提交
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/email-analyze/export';
+  form.target = '_blank';
+
+  const fields = {
+    format: selectedFormat,
+    include_attachments: includeAtt ? '1' : '0',
+    data: JSON.stringify(analysisData)
+  };
+
+  for (const [k, v] of Object.entries(fields)) {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = k;
+    input.value = v;
+    form.appendChild(input);
+  }
+
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
+}
+</script>
+{% endblock %}

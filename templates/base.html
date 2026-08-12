@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>document.documentElement.dataset.theme = localStorage.getItem('ui-theme') || 'light';</script>
+    <title>{% if title %}{{ title }} - {% endif %}安全辅助工具平台</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="{{ url_for('static', filename='css/vendor/bootstrap.min.css') }}" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="{{ url_for('static', filename='css/vendor/bootstrap-icons.css') }}" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <!-- 收起按钮 -->
+        <div class="sidebar-toggle" id="sidebarToggle">
+            <i class="bi bi-chevron-left"></i>
+        </div>
+
+        <!-- Logo -->
+        <a href="/" class="sidebar-brand" title="安全辅助工具平台">
+            <i class="bi bi-tools"></i>
+            <span>安全辅助工具平台</span>
+        </a>
+        <!-- 分割线 -->
+        <div class="sidebar-divider"></div>
+
+        <!-- 菜单区域 -->
+        <nav class="sidebar-menu" id="sidebarMenu">
+            <div class="sidebar-section-label"><span>分析研判</span></div>
+            <div class="nav-item">
+                <a href="{{ url_for('tools.assetdata_filter') }}" class="nav-link {% if request.endpoint == 'tools.assetdata_filter' %}active{% endif %}">
+                    <i class="bi bi-filter-square"></i>
+                    <span>资产分拣</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('tools.file_analysis') }}" class="nav-link {% if request.endpoint == 'tools.file_analysis' %}active{% endif %}">
+                    <i class="bi bi-file-earmark-binary"></i>
+                    <span>文件特征分析</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('tools.http_analysis') }}" class="nav-link {% if request.endpoint == 'tools.http_analysis' %}active{% endif %}">
+                    <i class="bi bi-braces-asterisk"></i>
+                    <span>HTTP 安全分析</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('parser.index') }}" class="nav-link {% if 'parser.' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-clipboard-data"></i>
+                    <span>报告解析</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('tools.email_analyze') }}" class="nav-link {% if request.endpoint == 'tools.email_analyze' %}active{% endif %}">
+                    <i class="bi bi-envelope-paper"></i>
+                    <span>邮件分析</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('tools.process_check') }}" class="nav-link {% if request.endpoint == 'tools.process_check' %}active{% endif %}">
+                    <i class="bi bi-activity"></i>
+                    <span>进程分析</span>
+                </a>
+            </div>
+
+            <div class="sidebar-section-label"><span>攻防辅助</span></div>
+            <div class="nav-item">
+                <a href="{{ url_for('tools.payloader_index') }}" class="nav-link {% if 'tools.payloader' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-journal-code"></i>
+                    <span>载荷武库</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('tools.reverse_shell') }}" class="nav-link {% if request.endpoint == 'tools.reverse_shell' %}active{% endif %}">
+                    <i class="bi bi-terminal"></i>
+                    <span>Shell反连</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('tools.file_download') }}" class="nav-link {% if request.endpoint == 'tools.file_download' %}active{% endif %}">
+                    <i class="bi bi-download"></i>
+                    <span>传输命令</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('tools.windows_systeminfo') }}" class="nav-link {% if request.endpoint == 'tools.windows_systeminfo' %}active{% endif %}">
+                    <i class="bi bi-windows"></i>
+                    <span>提权辅助</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('tools.search_hacking') }}" class="nav-link {% if request.endpoint == 'tools.search_hacking' %}active{% endif %}">
+                    <i class="bi bi-search"></i>
+                    <span>信息收集语法</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('oob.index') }}" class="nav-link {% if 'oob.' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-broadcast"></i>
+                    <span>反连服务</span>
+                </a>
+            </div>
+
+            <div class="sidebar-section-label"><span>密码与编码</span></div>
+            <div class="nav-item">
+                <a href="{{ url_for('tools.cyberchef') }}" class="nav-link {% if request.endpoint == 'tools.cyberchef' %}active{% endif %}">
+                    <i class="bi bi-magic"></i>
+                    <span>加解密转换</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('tools.passwd_tools') }}" class="nav-link {% if request.endpoint == 'tools.passwd_tools' %}active{% endif %}">
+                    <i class="bi bi-key"></i>
+                    <span>社工密码</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('tools.jsfuck') }}" class="nav-link {% if request.endpoint == 'tools.jsfuck' %}active{% endif %}">
+                    <i class="bi bi-code-slash"></i>
+                    <span>JSFuck混淆</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('tools.passwd') }}" class="nav-link {% if request.endpoint == 'tools.passwd' %}active{% endif %}">
+                    <i class="bi bi-key-fill"></i>
+                    <span>弱口令查询</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('tools.jwt_tool') }}" class="nav-link {% if request.endpoint == 'tools.jwt_tool' %}active{% endif %}">
+                    <i class="bi bi-key"></i>
+                    <span>JWT分析</span>
+                </a>
+            </div>
+
+            <div class="sidebar-section-label"><span>漏洞情报</span></div>
+            <div class="nav-item">
+            </div>
+        </nav>
+
+        <div class="sidebar-appearance">
+            <button id="themeToggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-label="切换显示主题">
+                <i class="bi bi-sun" aria-hidden="true"></i>
+                <span class="theme-toggle-copy">
+                    <span class="theme-toggle-label">外观</span>
+                    <span class="theme-toggle-state">暗色模式</span>
+                </span>
+                <i class="bi bi-chevron-right theme-toggle-arrow" aria-hidden="true"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <div class="app-page-shell">
+            {% if title and not hide_page_header %}
+            <header class="app-page-header">
+                <h1>{{ title }}</h1>
+            </header>
+            {% endif %}
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
+            <div class="app-page-body">{% block content %}{% endblock %}</div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="{{ url_for('static', filename='js/vendor/bootstrap.bundle.min.js') }}"></script>
+    <script>
+        // 亮/暗主题切换（localStorage 持久化，刷新不闪旧主题）
+        function toggleTheme() {
+            var el = document.documentElement;
+            var next = el.dataset.theme === 'light' ? 'dark' : 'light';
+            el.dataset.theme = next;
+            localStorage.setItem('ui-theme', next);
+            updateThemeIcon();
+        }
+        function updateThemeIcon() {
+            var b = document.getElementById('themeToggle');
+            if (!b) return;
+            var isLight = document.documentElement.dataset.theme === 'light';
+            b.querySelector('i').className = isLight ? 'bi bi-moon-stars' : 'bi bi-sun';
+            var state = b.querySelector('.theme-toggle-state');
+            if (state) state.textContent = isLight ? '切换到暗色' : '切换到亮色';
+            b.title = isLight ? '切换到暗色模式' : '切换到亮色模式';
+        }
+        updateThemeIcon();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const toggleBtn = document.getElementById('sidebarToggle');
+            const toggleIcon = toggleBtn.querySelector('i');
+            const sidebarMenu = document.getElementById('sidebarMenu');
+            const sidebarScrollKey = 'sidebarMenuScrollTop';
+
+            // 侧边栏是独立滚动区：页面切换时保持用户点击前的位置，
+            // 不根据新页面的 active 菜单项自动跳到顶部或底部。
+            function saveSidebarScroll() {
+                sessionStorage.setItem(sidebarScrollKey, String(sidebarMenu.scrollTop));
+            }
+            function restoreSidebarScroll() {
+                const saved = Number(sessionStorage.getItem(sidebarScrollKey));
+                if (!Number.isFinite(saved)) return;
+                const maxScroll = Math.max(0, sidebarMenu.scrollHeight - sidebarMenu.clientHeight);
+                sidebarMenu.scrollTop = Math.min(Math.max(saved, 0), maxScroll);
+            }
+            restoreSidebarScroll();
+            requestAnimationFrame(restoreSidebarScroll);
+            window.addEventListener('pageshow', function() {
+                requestAnimationFrame(restoreSidebarScroll);
+            });
+            sidebarMenu.addEventListener('scroll', saveSidebarScroll, { passive: true });
+            sidebarMenu.addEventListener('click', function(event) {
+                if (event.target.closest('a.nav-link')) saveSidebarScroll();
+            }, true);
+
+            // 恢复收起状态
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (isCollapsed) {
+                sidebar.classList.add('collapsed');
+                mainContent.classList.add('expanded');
+                toggleIcon.classList.remove('bi-chevron-left');
+                toggleIcon.classList.add('bi-chevron-right');
+            }
+
+            // 切换按钮
+            toggleBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('expanded');
+
+                if (sidebar.classList.contains('collapsed')) {
+                    toggleIcon.classList.remove('bi-chevron-left');
+                    toggleIcon.classList.add('bi-chevron-right');
+                    localStorage.setItem('sidebarCollapsed', 'true');
+                } else {
+                    toggleIcon.classList.remove('bi-chevron-right');
+                    toggleIcon.classList.add('bi-chevron-left');
+                    localStorage.setItem('sidebarCollapsed', 'false');
+                }
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

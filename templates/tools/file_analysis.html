@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+.fa-wrap{padding:15px}.fa-card{background:var(--bg-card);border:1px solid var(--border-card);border-radius:8px;padding:16px;margin-bottom:15px}
+.fa-drop{border:2px dashed var(--border-btn);border-radius:10px;padding:35px;text-align:center;cursor:pointer;background:var(--bg-input);color:var(--text-normal)}.fa-drop:hover,.fa-drop.drag{border-color:var(--primary-color);background:var(--bg-hover)}
+.fa-btn{border:1px solid var(--border-btn);border-radius:8px;padding:8px 16px;background:var(--primary-color);color:var(--button-on-accent);cursor:pointer}.fa-btn.secondary{background:var(--bg-hover);color:var(--text-normal)}
+.fa-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.fa-item{padding:10px;border:1px solid var(--border-line);background:var(--bg-input);border-radius:8px;word-break:break-all}
+.fa-label{color:var(--text-dim);font-size:.78rem}.fa-value{color:var(--text-strong);font-family:Consolas,monospace;margin-top:3px}.fa-risk{padding:8px 12px;border-left:4px solid var(--warning-color);background:var(--warning-bg);color:var(--warn-text);margin:6px 0;border-radius:6px}
+.fa-ok{border-left-color:var(--success-color);background:var(--success-bg);color:var(--ok-text)}.fa-pre{width:100%;min-height:180px;background:var(--code-bg);color:var(--code-text);border:1px solid var(--border-line);padding:12px;border-radius:8px;font:12px Consolas,monospace;white-space:pre-wrap;overflow:auto}
+.fa-note{font-size:.82rem;color:var(--ok-text);background:var(--success-bg);border-left:3px solid var(--success-color);padding:9px 12px;border-radius:8px;margin-top:12px}
+</style>
+<div class="fa-wrap">
+  <div class="fa-card">
+    <h5><i class="bi bi-file-earmark-binary"></i> 文件特征分析</h5>
+    <input id="fileInput" type="file" hidden>
+    <div id="dropZone" class="fa-drop">
+      <i class="bi bi-cloud-arrow-up" style="font-size:2rem;color:#00e5ff"></i><br>
+      拖入文件或点击选择<br><small>计算 Hash、识别文件头、熵值、可打印字符串和可疑特征</small>
+    </div>
+    <div class="fa-note"><b>隐私安全：</b>所有分析均在浏览器本地完成，文件不会上传服务器。单文件最大 100 MB。</div>
+  </div>
+  <div id="progress" class="fa-card" style="display:none">正在分析，请稍候……</div>
+  <div id="results" style="display:none">
+    <div class="fa-card"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><h5>基础信息与指纹</h5><button class="fa-btn secondary" onclick="exportJson()">导出 JSON</button></div><div id="infoGrid" class="fa-grid"></div></div>
+    <div class="fa-card"><h5>风险提示</h5><div id="riskList"></div></div>
+    <div class="fa-card"><h5>可打印字符串 <small id="stringCount"></small></h5><div id="strings" class="fa-pre"></div></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/vendor/crypto-js.min.js') }}"></script>
+<script>
+var fileInput=document.getElementById('fileInput'),dropZone=document.getElementById('dropZone'),lastAnalysis=null;
+dropZone.onclick=function(){fileInput.click()};
+fileInput.onchange=function(){if(fileInput.files[0]) analyzeFile(fileInput.files[0])};
+['dragenter','dragover'].forEach(function(e){dropZone.addEventListener(e,function(x){x.preventDefault();dropZone.classList.add('drag')})});
+['dragleave','drop'].forEach(function(e){dropZone.addEventListener(e,function(x){x.preventDefault();dropZone.classList.remove('drag')})});
+dropZone.addEventListener('drop',function(e){if(e.dataTransfer.files[0]) analyzeFile(e.dataTransfer.files[0])});
+
+function hex(bytes,limit){return Array.from(bytes.slice(0,limit||bytes.length)).map(function(b){return b.toString(16).padStart(2,'0')}).join(' ')}
+function digest(name,buf){
+  if(window.crypto&&window.crypto.subtle)return window.crypto.subtle.digest(name,buf).then(function(h){return Array.from(new Uint8Array(h)).map(function(b){return b.toString(16).padStart(2,'0')}).join('')});
+  var bytes=new Uint8Array(buf),words=[];for(var i=0;i<bytes.length;i++)words[i>>>2]|=bytes[i]<<(24-(i%4)*8);
+  var wa=CryptoJS.lib.WordArray.create(words,bytes.length),fn={'SHA-1':CryptoJS.SHA1,'SHA-256':CryptoJS.SHA256,'SHA-384':CryptoJS.SHA384,'SHA-512':CryptoJS.SHA512}[name];
+  return Promise.resolve(fn(wa).toString());
+}
+function entropy(bytes){if(!bytes.length)return 0;var f=new Uint32Array(256);bytes.forEach(function(b){f[b]++});var e=0;f.forEach(function(n){if(n){var p=n/bytes.length;e-=p*Math.log2(p)}});return e}
+function identify(bytes,name){var h=hex(bytes,16).replace(/ /g,'').toUpperCase(),n=name.toLowerCase();var sigs=[
+  ['4D5A','PE/Windows 可执行文件'],['7F454C46','ELF 可执行文件'],['CAFEBABE','Java Class'],['504B0304','ZIP/JAR/DOCX/XLSX/APK'],
+  ['25504446','PDF'],['89504E470D0A1A0A','PNG'],['FFD8FF','JPEG'],['47494638','GIF'],['526172211A0700','RAR'],
+  ['377ABCAF271C','7-Zip'],['1F8B08','GZIP'],['D0CF11E0A1B11AE1','OLE/旧版 Office'],['53514C69746520666F726D6174203300','SQLite']
+];for(var i=0;i<sigs.length;i++)if(h.indexOf(sigs[i][0])===0)return sigs[i][1];
+  if(/\.(ps1|bat|cmd|vbs|js|hta|lnk)$/i.test(n))return '脚本/快捷方式（按扩展名）';return '未知/无标准签名';}
+function extractStrings(bytes){var out=[],s='';for(var i=0;i<bytes.length&&out.length<2000;i++){var b=bytes[i];if(b>=32&&b<=126){s+=String.fromCharCode(b)}else{if(s.length>=5)out.push(s);s=''}}if(s.length>=5&&out.length<2000)out.push(s);return out}
+function readPeInfo(bytes){
+  if(bytes.length<64||bytes[0]!==0x4d||bytes[1]!==0x5a)return null;var v=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength),off=v.getUint32(0x3c,true);if(off+24>bytes.length||v.getUint32(off,false)!==0x50450000)return {warning:'MZ 文件缺少有效 PE 头'};
+  var machine=v.getUint16(off+4,true),sections=v.getUint16(off+6,true),timestamp=v.getUint32(off+8,true),opt=v.getUint16(off+20,true),names={0x14c:'x86',0x8664:'x64',0xaa64:'ARM64'},sectionList=[];
+  var sec=off+24+opt;for(var i=0;i<sections&&i<96&&sec+40<=bytes.length;i++,sec+=40){var name='';for(var j=0;j<8&&bytes[sec+j];j++)name+=String.fromCharCode(bytes[sec+j]);var size=v.getUint32(sec+16,true),ptr=v.getUint32(sec+20,true),e=ptr+size<=bytes.length?entropy(bytes.slice(ptr,ptr+size)):null;sectionList.push({name:name||'?',size:size,entropy:e==null?null:+e.toFixed(3)});}
+  return {architecture:names[machine]||('0x'+machine.toString(16)),sections:sections,compileTime:timestamp?new Date(timestamp*1000).toISOString():'',sectionList:sectionList};
+}
+function analyzeFormat(type,bytes,strings){
+  var text=strings.join('\n'),details={},risks=[];
+  if(type.indexOf('PE/')===0){details.pe=readPeInfo(bytes);if(details.pe&&details.pe.sectionList){var high=details.pe.sectionList.filter(function(s){return s.entropy!==null&&s.entropy>7.2});if(high.length)risks.push('PE 高熵节: '+high.map(function(s){return s.name+'('+s.entropy+')'}).join(', '));}}
+  if(type==='PDF'){var keys=[['/JavaScript','PDF JavaScript'],['/OpenAction','PDF 自动打开动作'],['/Launch','PDF 启动动作'],['/EmbeddedFile','PDF 嵌入文件'],['/URI','PDF 外部链接']];details.pdf=keys.filter(function(x){return text.indexOf(x[0])>=0}).map(function(x){return x[1]});if(details.pdf.length)risks.push('发现 '+details.pdf.join('、'));}
+  if(type.indexOf('ZIP/')===0){var indicators=[['vbaProject.bin','Office VBA 宏'],['word/embeddings','Word 嵌入对象'],['xl/embeddings','Excel 嵌入对象'],['externalLinks','Office 外部链接'],['META-INF/MANIFEST.MF','JAR/APK 清单']];details.archive=indicators.filter(function(x){return text.indexOf(x[0])>=0}).map(function(x){return x[1]});if(details.archive.some(function(x){return /VBA|嵌入|外部/.test(x)}))risks.push('压缩/Office 容器发现: '+details.archive.join('、'));}
+  return {details:details,risks:risks};
+}
+function scanSensitiveStrings(strings){var text=strings.join('\n'),rules=[['AWS Access Key',/\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g],['JWT',/\beyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]*\b/g],['PEM 私钥',/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/g],['GitHub Token',/\bgh[pousr]_[A-Za-z0-9_]{20,}\b/g],['数据库连接串',/\b(?:mysql|postgres(?:ql)?|mongodb(?:\+srv)?):\/\/[^\s]+/gi]];return rules.map(function(r){var m=text.match(r[1]);return m&&m.length?{type:r[0],count:m.length}:null}).filter(Boolean)}
+function extensionMismatch(name,type){var ext=(name.toLowerCase().match(/\.([a-z0-9]+)$/)||[])[1]||'',map={exe:'PE/Windows 可执行文件',dll:'PE/Windows 可执行文件',pdf:'PDF',png:'PNG',jpg:'JPEG',jpeg:'JPEG',gif:'GIF',zip:'ZIP/JAR/DOCX/XLSX/APK'};return map[ext]&&type!==map[ext]&&!(ext==='zip'&&type.indexOf('ZIP/')===0)?'扩展名 .'+ext+' 与识别类型 '+type+' 不一致':''}
+function sizeText(n){var u=['B','KB','MB','GB'],i=0;while(n>=1024&&i<u.length-1){n/=1024;i++}return n.toFixed(i?2:0)+' '+u[i]}
+function addInfo(label,value){return '<div class="fa-item"><div class="fa-label">'+escapeHtml(label)+'</div><div class="fa-value">'+escapeHtml(value)+'</div></div>'}
+function escapeHtml(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+async function analyzeFile(file){
+  if(file.size>100*1024*1024){alert('文件超过 100 MB 限制');return}
+  document.getElementById('progress').style.display='block';document.getElementById('results').style.display='none';
+  try{
+    var buf=await file.arrayBuffer(),bytes=new Uint8Array(buf),type=identify(bytes,file.name),ent=entropy(bytes),strings=extractStrings(bytes);
+    var hashes=await Promise.all([digest('SHA-1',buf),digest('SHA-256',buf),digest('SHA-384',buf),digest('SHA-512',buf)]),format=analyzeFormat(type,bytes,strings),secrets=scanSensitiveStrings(strings);
+    var risks=[],lowerStrings=strings.join('\n').toLowerCase();
+    if(ent>7.2)risks.push('熵值较高（'+ent.toFixed(3)+'），可能经过压缩、加密或加壳。');
+    if(/\.(exe|dll|scr|com|ps1|bat|cmd|vbs|js|hta|jar|lnk)$/i.test(file.name))risks.push('文件扩展名属于可执行或脚本类型，打开前应确认来源。');
+    if(/powershell|cmd\.exe|\/bin\/sh|virtualalloc|writeprocessmemory|createremotethread|mimikatz|frombase64string|http:\/\/|https:\/\//i.test(lowerStrings))risks.push('字符串中发现命令执行、网络地址或进程注入相关关键词。');
+    if(type.indexOf('未知')===0&&file.type)risks.push('浏览器 MIME 类型与文件头无法相互验证，请留意伪装扩展名。');
+    risks=risks.concat(format.risks);var mismatch=extensionMismatch(file.name,type);if(mismatch)risks.push(mismatch);if(secrets.length)risks.push('发现敏感信息类型: '+secrets.map(function(x){return x.type+'('+x.count+')'}).join('、'));
+    lastAnalysis={name:file.name,size:file.size,lastModified:new Date(file.lastModified).toISOString(),browserMime:file.type||'',identifiedType:type,entropy:+ent.toFixed(4),headerHex:hex(bytes,32),sha1:hashes[0],sha256:hashes[1],sha384:hashes[2],sha512:hashes[3],formatDetails:format.details,sensitiveFindings:secrets,risks:risks,strings:strings};
+    var extra=format.details.pe?addInfo('PE 架构/节',format.details.pe.architecture+' / '+format.details.pe.sections)+addInfo('PE 编译时间',format.details.pe.compileTime||'未设置'):'';
+    document.getElementById('infoGrid').innerHTML=addInfo('文件名',file.name)+addInfo('大小',sizeText(file.size)+' ('+file.size+' bytes)')+addInfo('识别类型',type)+addInfo('浏览器 MIME',file.type||'未知')+addInfo('Shannon 熵',ent.toFixed(4)+' / 8.0000')+addInfo('文件头（前32字节）',lastAnalysis.headerHex)+extra+addInfo('SHA-1',hashes[0])+addInfo('SHA-256',hashes[1])+addInfo('SHA-384',hashes[2])+addInfo('SHA-512',hashes[3]);
+    document.getElementById('riskList').innerHTML=risks.length?risks.map(function(x){return '<div class="fa-risk">'+escapeHtml(x)+'</div>'}).join(''):'<div class="fa-risk fa-ok">未发现明显可疑特征；该结果不能替代杀毒引擎或沙箱分析。</div>';
+    document.getElementById('strings').textContent=strings.join('\n');document.getElementById('stringCount').textContent='（'+strings.length+' 条，最多显示 2000 条）';
+    document.getElementById('results').style.display='block';
+  }catch(e){alert('分析失败：'+e.message)}finally{document.getElementById('progress').style.display='none'}
+}
+function exportJson(){if(!lastAnalysis)return;var blob=new Blob([JSON.stringify(lastAnalysis,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=lastAnalysis.name+'_analysis.json';a.click();setTimeout(function(){URL.revokeObjectURL(a.href)},1000)}
+</script>
+{% endblock %}

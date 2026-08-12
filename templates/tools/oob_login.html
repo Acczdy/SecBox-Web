@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+.oob-login-wrap{min-height:calc(100vh - 72px);display:grid;place-items:center;padding:20px}
+.oob-login-card{width:min(100%,420px);background:var(--bg-card);border:1px solid var(--border-card);border-radius:10px;box-shadow:0 14px 34px -26px rgba(20,19,23,.42)}
+.oob-login-heading{display:flex;align-items:center;gap:11px;padding:18px 20px 14px;border-bottom:1px solid var(--border-line)}
+.oob-login-icon{width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex:0 0 36px;border-radius:9px;background:var(--bg-hover2);color:var(--primary-hover);font-size:16px}
+.oob-login-card h2{font-size:15px!important;line-height:1.35;color:var(--text-strong);margin:0;font-weight:650}
+.oob-login-form-panel{padding:18px 20px 20px}
+.oob-form-desc{font-size:12px;color:var(--text-dim);margin-bottom:14px}
+.oob-login-card label{font-size:12px;color:var(--text-normal);font-weight:600;margin-bottom:6px;display:block}
+.oob-password-wrap{display:flex;align-items:stretch;gap:8px}.oob-login-card input{flex:1;min-width:0;height:40px;padding:8px 12px;border:1px solid var(--border-mid);border-radius:7px;background:var(--bg-input);color:var(--text-strong);font-size:13px;outline:none;transition:border-color .16s,box-shadow .16s}
+.oob-login-card input:focus{border-color:var(--primary-color);box-shadow:0 0 0 3px rgba(121,103,216,.11)}
+.oob-eye{position:static!important;flex:0 0 58px;width:58px!important;height:40px!important;display:flex!important;align-items:center!important;justify-content:center!important;border:1px solid var(--border-mid)!important;background:var(--bg-input)!important;color:var(--text-dim)!important;padding:0!important;margin:0!important;border-radius:7px!important;font-size:12px!important;font-weight:500!important;line-height:1!important;box-shadow:none!important;transform:none!important}.oob-eye:hover{background:var(--bg-hover)!important;border-color:var(--primary-color)!important;color:var(--primary-hover)!important}
+.oob-login-actions{display:flex;justify-content:flex-end;margin-top:20px}.oob-submit{width:auto!important;min-width:118px;height:38px;border:1px solid var(--primary-color)!important;border-radius:7px!important;margin:0!important;padding:0 18px!important;background:var(--primary-color)!important;color:var(--button-on-accent)!important;font-size:13px!important;font-weight:650!important;line-height:1!important;box-shadow:none!important;transition:.16s}.oob-submit:hover{background:var(--primary-hover)!important;border-color:var(--primary-hover)!important;transform:none!important}.oob-submit:disabled{opacity:.7}
+.oob-login-error{display:flex;align-items:flex-start;gap:7px;background:var(--bg-input);border:1px solid var(--border-card);border-left:3px solid var(--primary-color);color:var(--text-normal);padding:8px 10px;border-radius:7px;font-size:12px;line-height:1.45;margin-bottom:12px}
+@media(max-width:560px){.oob-login-wrap{min-height:0;padding:12px 0}.oob-login-card{width:100%}}
+</style>
+<div class="oob-login-wrap">
+<div class="oob-login-card" aria-labelledby="oobLoginTitle">
+  <div class="oob-login-heading">
+    <div class="oob-login-icon"><i class="bi bi-shield-lock"></i></div>
+    <h2 id="oobLoginTitle">反连服务访问验证</h2>
+  </div>
+  <section class="oob-login-form-panel">
+    <div class="oob-form-desc">请输入访问密码后继续</div>
+    {% if error %}<div class="oob-login-error"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>{% endif %}
+    <form id="oobLoginForm" method="post" autocomplete="off">
+      <label for="password">访问密码</label>
+      <div class="oob-password-wrap">
+        <input id="password" name="password" type="password" minlength="8" maxlength="256" required autofocus autocomplete="current-password" placeholder="请输入管理密码">
+        <button id="oobEye" class="oob-eye" type="button" onclick="toggleOobPassword()" aria-label="显示或隐藏密码">显示</button>
+      </div>
+      <div class="oob-login-actions">
+        <button id="oobSubmit" class="oob-submit" type="submit">验证并进入</button>
+      </div>
+    </form>
+  </section>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}<script>
+function toggleOobPassword(){var i=document.getElementById('password'),b=document.getElementById('oobEye');var show=i.type==='password';i.type=show?'text':'password';b.textContent=show?'隐藏':'显示';}
+document.getElementById('oobLoginForm').addEventListener('submit',function(){var b=document.getElementById('oobSubmit');b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> 正在验证…';});
+</script>{% endblock %}

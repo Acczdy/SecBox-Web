@@ -1,0 +1,15 @@
+const assert=require('assert'),fs=require('fs'),vm=require('vm');
+const html=fs.readFileSync('templates/tools/http_analysis.html','utf8');
+const script=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].pop()[1];
+const context={console,URLSearchParams};vm.createContext(context);vm.runInContext(script,context);
+let msg=context.parseRawHttp('POST /login HTTP/1.1\r\nHost: app.test\r\nContent-Length: 3\r\nTransfer-Encoding: chunked\r\nAuthorization: Bearer secret\r\n\r\na=1');
+assert.strictEqual(msg.kind,'request');
+let findings=context.analyzeHttpData(msg);
+assert(findings.some(x=>x.title.includes('CL/TE')));
+assert(findings.some(x=>x.title.includes('身份凭据')));
+assert(context.converters(msg).curl.includes('curl -X POST'));
+msg=context.parseRawHttp('HTTP/1.1 200 OK\r\nServer: nginx\r\nSet-Cookie: sid=x; Path=/\r\n\r\nhello');
+findings=context.analyzeHttpData(msg);
+assert(findings.some(x=>x.title.includes('Secure')));
+assert(findings.some(x=>x.title.includes('CSP')));
+console.log('http analysis tests passed');

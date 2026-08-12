@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.ha-wrap{padding:15px}.ha-card{background:var(--bg-card);border:1px solid var(--border-card);border-radius:8px;padding:16px;margin-bottom:14px}.ha-title{color:var(--text-strong);font-weight:650;margin-bottom:10px}.ha-input{width:100%;min-height:260px;background:var(--bg-input);color:var(--text-normal);border:1px solid var(--border-btn);border-radius:6px;padding:12px;font:13px Consolas,monospace;resize:vertical}.ha-input:focus{outline:0;border-color:var(--primary-color)}
+.ha-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.ha-btn{border:0;border-radius:6px;padding:8px 15px;background:var(--primary-color);color:#071014;font-weight:650}.ha-btn.alt{background:var(--bg-hover2);color:var(--text-normal);border:1px solid var(--border-btn)}.ha-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}.ha-stat{padding:12px;background:var(--bg-input);border:1px solid var(--border-line);border-radius:6px}.ha-find{padding:10px 12px;border-radius:6px;margin:7px 0;border-left:4px solid var(--primary-color);background:rgba(0,229,255,.06)}.ha-find.high{border-color:#dc3545;background:rgba(220,53,69,.08)}.ha-find.medium{border-color:#e67e22;background:rgba(230,126,34,.08)}.ha-find.ok{border-color:#00c96b;background:rgba(0,201,107,.07)}.ha-code{width:100%;min-height:125px;white-space:pre-wrap;background:#09090d;color:#d8d8e3;border:1px solid var(--border-line);border-radius:6px;padding:10px;font:12px Consolas,monospace}.ha-table{width:100%;font-size:.83rem}.ha-table td{padding:6px 8px;border-bottom:1px solid var(--border-line);word-break:break-all}.ha-table td:first-child{color:var(--acc-text);width:32%}
+</style>
+<div class="ha-wrap">
+ <div class="ha-card"><div class="ha-title"><i class="bi bi-shield-check"></i> Raw HTTP 请求/响应分析</div>
+  <textarea id="httpRaw" class="ha-input" placeholder="粘贴 Raw HTTP 请求或响应……"></textarea>
+  <div class="ha-actions"><button class="ha-btn" onclick="analyzeHttp()">本地分析</button><button class="ha-btn alt" onclick="loadHttpSample()">载入示例</button><button class="ha-btn alt" onclick="document.getElementById('httpRaw').value='';document.getElementById('httpResults').style.display='none'">清空</button></div>
+  <div style="margin-top:10px;color:var(--ok-text);font-size:.8rem"><i class="bi bi-lock"></i> 仅在浏览器本地解析，不发送 HTTP 请求，不上传内容。</div>
+ </div>
+ <div id="httpResults" style="display:none">
+  <div class="ha-grid"><div class="ha-card"><div class="ha-title">概览</div><div id="httpSummary"></div></div><div class="ha-card"><div class="ha-title">安全检查</div><div id="httpFindings"></div></div></div>
+  <div class="ha-card"><div class="ha-title">头部与 Cookie</div><div id="httpHeaders"></div></div>
+  <div id="requestConverters" class="ha-card" style="display:none"><div class="ha-title">请求转换</div><div class="ha-grid"><div><small>curl</small><pre id="curlOutput" class="ha-code"></pre></div><div><small>Python requests</small><pre id="pythonOutput" class="ha-code"></pre></div></div></div>
+ </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>
+function hesc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function parseRawHttp(raw){
+ var normalized=raw.replace(/\r\n/g,'\n'),parts=normalized.split(/\n\n/),lines=parts.shift().split('\n'),start=(lines.shift()||'').trim(),headers={},headerList=[];
+ lines.forEach(function(line){var i=line.indexOf(':');if(i>0){var k=line.slice(0,i).trim(),v=line.slice(i+1).trim(),low=k.toLowerCase();(headers[low]=headers[low]||[]).push(v);headerList.push([k,v]);}});
+ var request=start.match(/^([A-Z]+)\s+(\S+)\s+HTTP\/(\d(?:\.\d)?)$/i),response=start.match(/^HTTP\/(\d(?:\.\d)?)\s+(\d{3})(?:\s+(.*))?$/i);
+ if(!request&&!response)throw new Error('首行不是有效的 HTTP 请求或响应');
+ return {kind:request?'request':'response',start:start,method:request&&request[1].toUpperCase(),target:request&&request[2],status:response&&response[2],reason:response&&response[3],headers:headers,headerList:headerList,body:parts.join('\n\n')};
+}
+function analyzeHttpData(m){
+ var f=[],h=m.headers,add=function(level,title,detail){f.push({level:level,title:title,detail:detail})};
+ if(m.kind==='response'){
+  [['content-security-policy','CSP'],['x-content-type-options','X-Content-Type-Options'],['referrer-policy','Referrer-Policy'],['permissions-policy','Permissions-Policy']].forEach(function(x){if(!h[x[0]])add('medium','缺少 '+x[1],'响应未包含该安全头。')});
+  if(h['strict-transport-security'])add('ok','HSTS 已配置',h['strict-transport-security'][0]);else add('medium','缺少 HSTS','HTTPS 站点建议配置 Strict-Transport-Security。');
+  if(h['access-control-allow-origin']&&h['access-control-allow-origin'].includes('*')&&h['access-control-allow-credentials'])add('high','CORS 高风险组合','允许任意源同时允许凭据。');
+  (h['set-cookie']||[]).forEach(function(c,i){if(!/;\s*secure\b/i.test(c))add('medium','Cookie '+(i+1)+' 缺少 Secure',c);if(!/;\s*httponly\b/i.test(c))add('medium','Cookie '+(i+1)+' 缺少 HttpOnly',c);if(!/;\s*samesite=/i.test(c))add('medium','Cookie '+(i+1)+' 缺少 SameSite',c)});
+  if(h['server']||h['x-powered-by'])add('medium','技术栈信息泄露',(h['server']||[]).concat(h['x-powered-by']||[]).join(', '));
+ } else {
+  if(!h.host)add('high','缺少 Host','HTTP/1.1 请求应包含 Host 头。');
+  if(h['content-length']&&h['transfer-encoding'])add('high','CL/TE 同时存在','可能引发代理解析差异，需检查请求走私风险。');
+  if(h.authorization||h.cookie)add('medium','请求包含身份凭据','分享或导出前请脱敏 Authorization/Cookie。');
+  if(h['x-forwarded-host']||h['x-original-url'])add('medium','包含代理重写头','需确认后端不盲目信任这些头。');
+ }
+ if(!f.length)add('ok','未发现明显配置风险','仅基于粘贴的单条报文。');return f;
+}
+function shellQuote(v){return "'"+String(v).replace(/'/g,"'\\''")+"'"}
+function converters(m){var host=(m.headers.host||['example.invalid'])[0],scheme='https',url=/^https?:/i.test(m.target)?m.target:scheme+'://'+host+m.target;var curl=['curl','-X',m.method,shellQuote(url)];m.headerList.forEach(function(x){curl.push('-H',shellQuote(x[0]+': '+x[1]))});if(m.body)curl.push('--data-raw',shellQuote(m.body));var py="import requests\n\nurl = "+JSON.stringify(url)+"\nheaders = "+JSON.stringify(Object.fromEntries(m.headerList),null,2)+"\nresponse = requests.request("+JSON.stringify(m.method)+", url, headers=headers"+(m.body?', data='+JSON.stringify(m.body):'')+")\nprint(response.status_code)";return {curl:curl.join(' '),python:py}}
+function analyzeHttp(){try{var m=parseRawHttp(document.getElementById('httpRaw').value),f=analyzeHttpData(m);document.getElementById('httpSummary').innerHTML='<div class="ha-stat"><b>'+hesc(m.kind==='request'?m.method+' '+m.target:'HTTP '+m.status+' '+(m.reason||''))+'</b><br><small>'+m.headerList.length+' 个头部 / Body '+m.body.length+' 字符</small></div>';document.getElementById('httpFindings').innerHTML=f.map(function(x){return '<div class="ha-find '+x.level+'"><b>'+hesc(x.title)+'</b><br><small>'+hesc(x.detail)+'</small></div>'}).join('');document.getElementById('httpHeaders').innerHTML='<table class="ha-table">'+m.headerList.map(function(x){return '<tr><td>'+hesc(x[0])+'</td><td>'+hesc(x[1])+'</td></tr>'}).join('')+'</table>';var box=document.getElementById('requestConverters');if(m.kind==='request'){var c=converters(m);box.style.display='block';document.getElementById('curlOutput').textContent=c.curl;document.getElementById('pythonOutput').textContent=c.python}else box.style.display='none';document.getElementById('httpResults').style.display='block'}catch(e){alert(e.message)}}
+function loadHttpSample(){document.getElementById('httpRaw').value='HTTP/1.1 200 OK\r\nServer: nginx/1.20.1\r\nContent-Type: text/html\r\nSet-Cookie: session=demo; Path=/\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Credentials: true\r\n\r\n<html>demo</html>'}
+</script>{% endblock %}

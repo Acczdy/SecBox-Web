@@ -1,0 +1,461 @@
+/* 现代风格样式 - 与Assetdata_Filter风格保持一致 */
+:root {
+    --scale: 1;
+    --radius: 12px;
+    --blur: 10px;
+    --transition: all 0.3s ease;
+}
+
+:root[data-theme="dark"] {
+    --bg-main: #212134;
+    --bg-panel: rgba(33,33,52,.85);
+    --text-norm: #fff;
+    --text-green: #55ffcb;
+    --text-blue: #00d4ff;
+    --text-orange: #ffa500;
+    --border-color: rgba(255,255,255,.15);
+    --input-bg: rgba(0,0,0,.3);
+    --success-bg: rgba(85,255,203,.15);
+    --warning-bg: rgba(255,193,7,.15);
+    --tab-bg: rgba(0,0,0,.2);
+    --tab-active: rgba(0,212,255,.2);
+    --table-header-bg: rgba(0,212,255,.1);
+    --table-row-hover: rgba(85,255,203,.05);
+}
+
+:root[data-theme="light"] {
+    --bg-main: #f2f5fa;
+    --bg-panel: rgba(255,255,255,.9);
+    --text-norm: #222;
+    --text-green: #009e76;
+    --text-blue: #0077cc;
+    --text-orange: #e67e00;
+    --border-color: rgba(0,0,0,.1);
+    --input-bg: rgba(0,0,0,.05);
+    --success-bg: rgba(0,158,118,.15);
+    --warning-bg: rgba(255,193,7,.15);
+    --tab-bg: rgba(0,0,0,.05);
+    --tab-active: rgba(0,119,204,.15);
+    --table-header-bg: rgba(0,119,204,.1);
+    --table-row-hover: rgba(0,158,118,.05);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+html {
+    font-size: 15px;
+}
+
+body {
+    background: var(--bg-main);
+    color: var(--text-norm);
+    min-height: 100vh;
+    padding: 12px;
+    transition: var(--transition);
+    line-height: 1.4;
+}
+
+.theme-toggle {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 1000;
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    color: var(--text-blue);
+    cursor: pointer;
+    backdrop-filter: blur(var(--blur));
+    transition: var(--transition);
+}
+
+.theme-toggle:hover {
+    transform: translateY(-2px);
+}
+
+.container-fluid {
+    max-width: 1800px;
+    margin: 0 auto;
+    padding: 0 !important;
+}
+
+.card {
+    background: var(--bg-panel);
+    border-radius: var(--radius);
+    border: 1px solid var(--border-color);
+    backdrop-filter: blur(var(--blur));
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    background: transparent !important;
+    border-bottom: 1px solid var(--border-color);
+    padding: 15px 0;
+    margin-bottom: 15px;
+}
+
+.card-header h3 {
+    background: linear-gradient(45deg, var(--text-blue), var(--text-green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.main_bountytips {
+    background: var(--bg-panel);
+    border-radius: var(--radius);
+    border: 1px solid var(--border-color);
+    padding: 15px;
+    margin-bottom: 15px;
+    backdrop-filter: blur(var(--blur));
+}
+
+.main_bountytips h1 {
+    color: var(--text-green);
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+
+.main_bountytips blockquote {
+    color: var(--text-norm);
+    border-left: 4px solid var(--text-blue);
+    padding-left: 10px;
+    margin: 10px 0;
+}
+
+#search-input {
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-norm);
+    padding: 8px 12px;
+    margin-right: 10px;
+    transition: var(--transition);
+    width: 300px;
+}
+
+#search-input:focus {
+    outline: none;
+    border-color: var(--text-blue);
+    box-shadow: 0 0 0 2px rgba(0,212,255,0.2);
+}
+
+#search-input::placeholder {
+    color: var(--text-blue);
+    opacity: 0.7;
+}
+
+#search-btn {
+    background: linear-gradient(45deg, var(--text-blue), var(--text-green));
+    border: none;
+    border-radius: 8px;
+    color: var(--bg-main);
+    padding: 8px 16px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+#search-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* 导出按钮样式 - 与搜索按钮保持一致 */
+.export-btn {
+    background: linear-gradient(45deg, var(--text-blue), var(--text-green));
+    border: none;
+    border-radius: 8px;
+    color: var(--bg-main);
+    padding: 8px 16px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: var(--transition);
+    margin-left: 10px;
+}
+
+.export-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* 表格样式 */
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    backdrop-filter: blur(var(--blur));
+    margin-top: 15px;
+}
+
+#my-table {
+    width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    border-radius: var(--radius) !important;
+    overflow: hidden !important;
+    background: var(--bg-panel) !important;
+    border: 1px solid var(--border-color) !important;
+    backdrop-filter: blur(var(--blur)) !important;
+    margin-top: 15px !important;
+}
+
+table th, #my-table th {
+    background: var(--table-header-bg) !important;
+    color: var(--text-green) !important;
+    font-weight: 600 !important;
+    padding: 12px 15px !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    text-align: left !important;
+    border: none !important;
+}
+
+table td, #my-table td {
+    padding: 10px 15px !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    color: var(--text-norm) !important;
+    transition: var(--transition) !important;
+    border: none !important;
+}
+
+table tr:hover td, #my-table tr:hover td {
+    background: var(--table-row-hover) !important;
+}
+
+table tr:last-child td, #my-table tr:last-child td {
+    border-bottom: none !important;
+}
+
+/* 移除Bootstrap表格样式 */
+.table {
+    background: transparent !important;
+    border: none !important;
+}
+
+.table th, .table td {
+    border: none !important;
+    background: transparent !important;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 0 10px;
+    }
+    
+    #search-input {
+        width: 200px;
+    }
+    
+    table {
+        font-size: 0.9rem;
+    }
+    
+    table th, table td {
+        padding: 8px 10px;
+    }
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--input-bg);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--text-blue);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-green);
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.card, .main_bountytips, table {
+    animation: fadeIn 0.5s ease;
+}
+
+/* 高亮搜索结果的样式 */
+.highlight {
+    background-color: var(--text-green) !important;
+    color: var(--bg-main) !important;
+    font-weight: bold;
+}
+
+/* 统计信息样式 */
+.stats-info {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+    color: var(--text-blue);
+    flex-wrap: wrap;
+}
+
+.stats-info span {
+    background: var(--input-bg);
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+/* 搜索结果统计样式 */
+.search-stats {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 12px 15px;
+    margin: 15px 0;
+    backdrop-filter: blur(var(--blur));
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.search-stats .stats-text {
+    color: var(--text-norm);
+    font-size: 0.95rem;
+}
+
+.search-stats .stats-text strong {
+    color: var(--text-green);
+}
+
+.clear-search {
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-blue);
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: var(--transition);
+}
+
+.clear-search:hover {
+    background: var(--text-blue);
+    color: var(--bg-main);
+    transform: translateY(-1px);
+}
+
+
+
+/* 导出统计信息样式 */
+.export-stats {
+    background: var(--success-bg);
+    border: 1px solid var(--text-green);
+    border-radius: var(--radius);
+    padding: 12px 15px;
+    margin: 15px 0;
+    color: var(--text-green);
+    font-weight: 600;
+    text-align: center;
+    backdrop-filter: blur(var(--blur));
+    animation: fadeIn 0.3s ease;
+}
+
+/* 分页控件样式 */
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    padding: 15px;
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    backdrop-filter: blur(var(--blur));
+    border: 1px solid var(--border-color);
+}
+
+.pagination-info {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+#page-size {
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.pagination-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pagination-btn {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 14px;
+    transition: var(--transition);
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: var(--primary);
+    color: var(--bg-main);
+    border-color: var(--primary);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.page-info {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin: 0 10px;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .search-stats {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .clear-search {
+        align-self: flex-end;
+    }
+    
+    .export-btn {
+        margin-left: 0;
+        margin-top: 10px;
+        width: 100%;
+    }
+}

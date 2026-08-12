@@ -1,0 +1,684 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+.passwd-wrap {
+  padding: 15px;
+}
+
+.passwd-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.passwd-stats {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.stat-num {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #00e5ff;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.passwd-search {
+  background: #fff;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-bottom: 15px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border: 1px solid var(--border-card);
+}
+
+.search-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.search-input-wrap {
+  flex: 1;
+  min-width: 200px;
+  position: relative;
+}
+
+.search-input-wrap input {
+  width: 100%;
+  padding: 10px 15px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.search-input-wrap input:focus {
+  outline: none;
+  border-color: #00e5ff;
+  box-shadow: 0 0 0 3px rgba(0,229,255,0.1);
+}
+
+.btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #00e5ff;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #0066b3;
+}
+
+.btn-outline {
+  background: #fff;
+  border: 1px solid #dee2e6;
+  color: #666;
+}
+
+.btn-outline:hover {
+  background: #f8f9fa;
+  border-color: #00e5ff;
+  color: #00e5ff;
+}
+
+.filter-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-group label {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.filter-group select {
+  padding: 6px 10px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.85rem;
+}
+
+.passwd-table-wrap {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.passwd-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.passwd-table th {
+  background: #00e5ff;
+  color: #fff;
+  padding: 12px 15px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.85rem;
+  position: sticky;
+  top: 0;
+}
+
+.passwd-table th.sortable {
+  cursor: pointer;
+}
+
+.passwd-table th.sortable:hover {
+  background: #0066b3;
+}
+
+.passwd-table td {
+  padding: 10px 15px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 0.85rem;
+  color: #333;
+}
+
+.passwd-table tr:hover {
+  background: #f8f9fa;
+}
+
+.passwd-table .copy-btn {
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  color: #666;
+  cursor: pointer;
+  margin-left: 5px;
+}
+
+.passwd-table .copy-btn:hover {
+  background: #00e5ff;
+  border-color: #00e5ff;
+  color: #fff;
+}
+
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+}
+
+.tag-http { background: #e3f2fd; color: #1565c0; }
+.tag-ssh { background: #e8f5e9; color: #2e7d32; }
+.tag-telnet { background: #fff3e0; color: #ef6c00; }
+.tag-ftp { background: #fce4ec; color: #c2185b; }
+.tag-other { background: #f5f5f5; color: #666; }
+
+.pagination-wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: #fff;
+  border-top: 1px solid #f0f0f0;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.page-size-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.page-size-select select {
+  padding: 6px 10px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+}
+
+.page-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+.page-btn {
+  padding: 6px 12px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #e9ecef;
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-btn.active {
+  background: #00e5ff;
+  color: #fff;
+  border-color: #00e5ff;
+}
+
+.page-info {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.no-data {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+}
+
+.toast-msg {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 158, 118, 0.15);
+  color: #009e76;
+  border-left: 4px solid #009e76;
+  padding: 10px 15px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  display: none;
+  z-index: 1000;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .passwd-table th, .passwd-table td {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+  }
+
+  .stat-card {
+    padding: 8px 12px;
+  }
+
+  .stat-num {
+    font-size: 1.2rem;
+  }
+}
+</style>
+
+<div class="container-fluid passwd-wrap">
+  <!-- 统计信息 -->
+  <div class="passwd-header">
+    <div class="passwd-stats">
+      <div class="stat-card">
+        <div class="stat-num" id="totalCount">0</div>
+        <div class="stat-label">总记录数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="filteredCount">0</div>
+        <div class="stat-label">筛选结果</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="uniqueProducts">0</div>
+        <div class="stat-label">产品种类</div>
+      </div>
+    </div>
+    <div>
+      <button class="btn btn-outline" onclick="exportData('usernames')">导出用户名</button>
+      <button class="btn btn-outline" onclick="exportData('passwords')">导出密码</button>
+      <button class="btn btn-outline" onclick="exportData('results')">导出结果</button>
+      <button class="btn btn-outline" onclick="exportData('all')">导出全部</button>
+    </div>
+  </div>
+
+  <!-- 搜索区域 -->
+  <div class="passwd-search">
+    <div class="search-row">
+      <div class="search-input-wrap">
+        <input type="text" id="searchInput" placeholder="输入关键字搜索（支持空格分隔多关键字）">
+      </div>
+      <button class="btn btn-primary" onclick="doSearch()">搜索</button>
+      <button class="btn btn-outline" onclick="resetSearch()">重置</button>
+    </div>
+    <div class="filter-row">
+      <div class="filter-group">
+        <label>协议：</label>
+        <select id="filterProtocol" onchange="doFilter()">
+          <option value="">全部</option>
+          <option value="HTTP">HTTP</option>
+          <option value="SSH">SSH</option>
+          <option value="Telnet">Telnet</option>
+          <option value="FTP">FTP</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>用户等级：</label>
+        <select id="filterLevel" onchange="doFilter()">
+          <option value="">全部</option>
+          <option value="Administrator">Administrator</option>
+          <option value="admin">admin</option>
+          <option value="user">user</option>
+          <option value="guest">guest</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>每页显示：</label>
+        <select id="pageSize" onchange="changePageSize()">
+          <option value="50">50条</option>
+          <option value="100">100条</option>
+          <option value="200">200条</option>
+          <option value="500">500条</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- 表格区域 -->
+  <div class="passwd-table-wrap">
+    <table class="passwd-table">
+      <thead>
+        <tr>
+          <th style="width:60px">ID</th>
+          <th class="sortable" onclick="sortBy('product')">影响产品 ↕</th>
+          <th class="sortable" onclick="sortBy('username')">默认用户 ↕</th>
+          <th class="sortable" onclick="sortBy('password')">默认密码 ↕</th>
+          <th style="width:100px">协议</th>
+          <th style="width:120px">用户等级</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr><td colspan="6" class="loading">加载中...</td></tr>
+      </tbody>
+    </table>
+
+    <div class="pagination-wrap">
+      <div class="page-info">
+        显示 <span id="showStart">0</span>-<span id="showEnd">0</span> 条，共 <span id="totalFiltered">0</span> 条
+      </div>
+      <div class="page-buttons" id="pageButtons"></div>
+    </div>
+  </div>
+
+  <div class="toast-msg" id="toast">已复制到剪贴板</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allData = [];
+let filteredData = [];
+let currentPage = 1;
+let pageSize = 50;
+let sortField = 'id';
+let sortOrder = 'asc';
+
+// 加载数据
+function loadData() {
+  fetch('/static/security_tools/json/passwords.json')
+    .then(r => r.json())
+    .then(data => {
+      allData = data.records || [];
+      filteredData = [...allData];
+      updateStats();
+      renderTable();
+    })
+    .catch(err => {
+      document.getElementById('tableBody').innerHTML =
+        '<tr><td colspan="6" class="no-data">加载失败，请刷新重试</td></tr>';
+    });
+}
+
+// 更新统计
+function updateStats() {
+  document.getElementById('totalCount').textContent = allData.length;
+  document.getElementById('filteredCount').textContent = filteredData.length;
+
+  const products = new Set(allData.map(r => r.product));
+  document.getElementById('uniqueProducts').textContent = products.size;
+}
+
+// 渲染表格
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  const start = (currentPage - 1) * pageSize;
+  const end = Math.min(start + pageSize, filteredData.length);
+  const pageData = filteredData.slice(start, end);
+
+  if (pageData.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="no-data">暂无数据</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = pageData.map(r => `
+    <tr>
+      <td>${r.id}</td>
+      <td>${escapeHtml(r.product)}</td>
+      <td>${escapeHtml(r.username)}<button class="copy-btn" onclick="copyText('${escapeHtml(r.username)}')"><i class="bi bi-clipboard" title="复制"></i></button></td>
+      <td>${escapeHtml(r.password)}<button class="copy-btn" onclick="copyText('${escapeHtml(r.password)}')"><i class="bi bi-clipboard" title="复制"></i></button></td>
+      <td><span class="tag ${getTagClass(r.protocol)}">${escapeHtml(r.protocol)}</span></td>
+      <td>${escapeHtml(r.user_level)}</td>
+    </tr>
+  `).join('');
+
+  // 更新分页信息
+  document.getElementById('showStart').textContent = filteredData.length > 0 ? start + 1 : 0;
+  document.getElementById('showEnd').textContent = end;
+  document.getElementById('totalFiltered').textContent = filteredData.length;
+
+  renderPagination();
+}
+
+// 渲染分页按钮
+function renderPagination() {
+  const totalPages = Math.ceil(filteredData.length / pageSize);
+  const container = document.getElementById('pageButtons');
+
+  let html = '';
+  html += `<button class="page-btn" onclick="goToPage(1)" ${currentPage === 1 ? 'disabled' : ''}>首页</button>`;
+  html += `<button class="page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>`;
+
+  // 显示页码
+  let startPage = Math.max(1, currentPage - 2);
+  let endPage = Math.min(totalPages, currentPage + 2);
+
+  for (let i = startPage; i <= endPage; i++) {
+    html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+  }
+
+  html += `<button class="page-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>`;
+  html += `<button class="page-btn" onclick="goToPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>末页</button>`;
+
+  container.innerHTML = html;
+}
+
+// 跳转页面
+function goToPage(page) {
+  const totalPages = Math.ceil(filteredData.length / pageSize);
+  if (page < 1 || page > totalPages) return;
+  currentPage = page;
+  renderTable();
+  window.scrollTo(0, 0);
+}
+
+// 改变每页显示
+function changePageSize() {
+  pageSize = parseInt(document.getElementById('pageSize').value);
+  currentPage = 1;
+  renderTable();
+}
+
+// 搜索
+function doSearch() {
+  const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+  const keywords = keyword.split(/\s+/).filter(k => k);
+
+  if (keywords.length === 0) {
+    doFilter();
+    return;
+  }
+
+  filteredData = allData.filter(r => {
+    const text = (r.product + ' ' + r.username + ' ' + r.password + ' ' + r.protocol + ' ' + r.user_level).toLowerCase();
+    return keywords.every(k => text.includes(k));
+  });
+
+  // 应用筛选
+  applyFilters();
+
+  currentPage = 1;
+  updateStats();
+  renderTable();
+}
+
+// 筛选
+function doFilter() {
+  filteredData = [...allData];
+  applyFilters();
+
+  // 应用搜索关键字
+  const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+  if (keyword) {
+    const keywords = keyword.split(/\s+/).filter(k => k);
+    filteredData = filteredData.filter(r => {
+      const text = (r.product + ' ' + r.username + ' ' + r.password).toLowerCase();
+      return keywords.every(k => text.includes(k));
+    });
+  }
+
+  currentPage = 1;
+  updateStats();
+  renderTable();
+}
+
+function applyFilters() {
+  const protocol = document.getElementById('filterProtocol').value;
+  const level = document.getElementById('filterLevel').value;
+
+  if (protocol) {
+    filteredData = filteredData.filter(r => r.protocol === protocol);
+  }
+  if (level) {
+    filteredData = filteredData.filter(r => r.user_level === level);
+  }
+}
+
+// 重置
+function resetSearch() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('filterProtocol').value = '';
+  document.getElementById('filterLevel').value = '';
+  filteredData = [...allData];
+  currentPage = 1;
+  updateStats();
+  renderTable();
+}
+
+// 排序
+function sortBy(field) {
+  if (sortField === field) {
+    sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortField = field;
+    sortOrder = 'asc';
+  }
+
+  filteredData.sort((a, b) => {
+    let va = a[field] || '';
+    let vb = b[field] || '';
+    if (sortOrder === 'asc') {
+      return va.localeCompare(vb, 'zh-CN');
+    } else {
+      return vb.localeCompare(va, 'zh-CN');
+    }
+  });
+
+  renderTable();
+}
+
+// 导出
+function exportData(type) {
+  let content = '';
+  let filename = '';
+  const data = filteredData.length < allData.length ? filteredData : allData;
+
+  if (type === 'usernames') {
+    const usernames = [...new Set(data.map(r => r.username))];
+    content = usernames.join('\n');
+    filename = 'usernames.txt';
+  } else if (type === 'passwords') {
+    const passwords = [...new Set(data.map(r => r.password))];
+    content = passwords.join('\n');
+    filename = 'passwords.txt';
+  } else if (type === 'results') {
+    content = data.map(r => `${r.product}\t${r.username}\t${r.password}\t${r.protocol}\t${r.user_level}`).join('\n');
+    filename = 'search_results.txt';
+  } else {
+    content = data.map(r => `${r.id}\t${r.product}\t${r.username}\t${r.password}\t${r.protocol}\t${r.user_level}`).join('\n');
+    filename = 'all_passwords.txt';
+  }
+
+  downloadFile(content, filename);
+}
+
+function downloadFile(content, filename) {
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// 复制
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('密码已复制');
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('密码已复制');
+  });
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  setTimeout(() => toast.style.display = 'none', 2000);
+}
+
+// 工具函数
+function escapeHtml(text) {
+  if (!text) return '';
+  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function getTagClass(protocol) {
+  const p = (protocol || '').toLowerCase();
+  if (p === 'http' || p === 'https') return 'tag-http';
+  if (p === 'ssh') return 'tag-ssh';
+  if (p === 'telnet') return 'tag-telnet';
+  if (p === 'ftp') return 'tag-ftp';
+  return 'tag-other';
+}
+
+// 回车搜索
+document.getElementById('searchInput').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') doSearch();
+});
+
+// 初始化
+loadData();
+</script>
+{% endblock %}
