@@ -76,6 +76,9 @@ details.sp-raw summary { cursor: pointer; color: #666; font-size: 0.85rem; }
   font-family: Consolas, monospace; font-size: 0.78rem; overflow-x: auto; white-space: pre-wrap; margin-top: 8px;
 }
 .sp-toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.sp-action { line-height:1.55; max-width:520px; white-space:pre-line; }
+.sp-rank { display:inline-flex;align-items:center;justify-content:center;min-width:25px;height:25px;border-radius:50%;background:#eef2f5;color:#475569;font-weight:700; }
+.sp-muted { color:#777;font-size:.78rem; }
 .sp-file-box { display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0;padding:11px 12px;border:1px dashed var(--border-mid);border-radius:8px;background:var(--bg-input);transition:.15s }
 .sp-file-box.drag { border-color:var(--primary-color);background:rgba(0,229,255,.07) }
 .sp-file-info { color:var(--text-dim);font-size:.8rem;min-width:0;overflow-wrap:anywhere }
@@ -360,17 +363,28 @@ function parseFscan(text) {
       + '<div class="sp-raw-pre">' + esc(unparsed.join("\n")) + '</div></details></div>';
   }
 
+  var assetRisk={};
+  function asset(ip){return assetRisk[ip]||(assetRisk[ip]={host:ip,ports:0,creds:0,vulns:0,sites:0,score:0})}
+  Object.keys(portMap).forEach(function(ip){var a=asset(ip);a.ports=portMap[ip].length;a.score+=Math.min(a.ports,10)});
+  creds.forEach(function(x){var m=x.host.match(IP_RE);if(m){var a=asset(m[1]);a.creds++;a.score+=10}});
+  vulns.forEach(function(x){var m=(x.host+' '+x.raw).match(IP_RE);if(m){var a=asset(m[1]);a.vulns++;a.score+=6}});
+  sites.forEach(function(x){var m=x.url.match(IP_RE);if(m){var a=asset(m[1]);a.sites++;a.score+=1}});
+  var assetRows=Object.keys(assetRisk).map(function(k){var a=assetRisk[k];return [a.host,a.score,a.creds,a.vulns,a.ports,a.sites]}).sort(function(a,b){return b[1]-a[1]});
+  var actions=[];creds.forEach(function(x){actions.push(['立即',x.host,'暴露有效凭据',x.svc+' '+x.user,'修改密码、排查复用并限制服务来源'])});vulns.forEach(function(x){actions.push(['高',x.host,x.type,x.raw,'验证影响后修补或实施访问控制'])});
+  var analysis=[{title:'优先处置队列',badge:'bg-danger2',columns:['优先级','目标','发现','证据','建议动作'],rows:actions},{title:'资产风险排行',badge:'bg-purple',columns:['资产','风险分','有效凭据','漏洞','端口','站点'],rows:assetRows}];
+  analysis.forEach(function(a){s=sectionCard(a.title,a.badge,a.rows.length,table(a.columns,a.rows.map(function(row){return '<tr>'+row.map(function(v){return '<td class="sp-secret">'+esc(v)+'</td>'}).join('')+'</tr>'}), '暂无记录'))+s});
+
   return {
     statsHtml: statsHtml, sectionsHtml: s,
     data: { hosts: hosts, portCount: portCount, creds: creds, vulns: vulns,
-            sites: sites, netbios: netbios, portMap: portMap }
+            sites: sites, netbios: netbios, portMap: portMap, analysis: analysis }
   };
 }
 
 /* =========================================================
  * Nmap / Masscan / 安全日志解析
  * ======================================================= */
-function genericResult(title, columns, records, summary, unparsed) {
+function genericResult(title, columns, records, summary, unparsed, analysis) {
   var statsHtml = Object.keys(summary).map(function(k){
     return statCard(summary[k], k, /risk|fail|风险|失败/i.test(k) && summary[k] ? "warn" : "");
   }).join("");
@@ -380,6 +394,12 @@ function genericResult(title, columns, records, summary, unparsed) {
   });
   var html = sectionCard(title, "bg-blue", records.length,
     table(columns.map(function(c){ return c.label; }), rows, "未解析到记录"));
+  (analysis || []).forEach(function(a){
+    html = sectionCard(a.title, a.badge || "bg-purple", a.rows.length,
+      table(a.columns, a.rows.slice(0, 1000).map(function(row){
+        return "<tr>" + row.map(function(v){return "<td class='sp-secret'>"+esc(v)+"</td>"}).join("") + "</tr>";
+      }), a.empty || "暂无记录")) + html;
+  });
   if (records.length > renderLimit) {
     html = '<div class="sp-note">结果共 <b>' + records.length + '</b> 条，为保证页面流畅仅展示前 '
       + renderLimit + ' 条；统计和导出仍包含全部结果。</div>' + html;
@@ -390,7 +410,25 @@ function genericResult(title, columns, records, summary, unparsed) {
       + ' 条，最多展示 ' + renderLimit + ' 条）</summary><div class="sp-raw-pre">' + esc(visibleUnparsed.join("\n")) + '</div></details></div>';
   }
   return { statsHtml: statsHtml, sectionsHtml: html,
-    data: { title: title, columns: columns, records: records, summary: summary } };
+    data: { title: title, columns: columns, records: records, summary: summary, analysis: analysis || [] } };
+}
+
+var EXPOSED_PORTS={21:'FTP 应限制来源并禁用匿名访问',22:'SSH 应限制管理来源并启用强认证',23:'Telnet 为明文协议，建议关闭',25:'SMTP 应检查中继与身份认证',110:'POP3 为明文协议，优先使用加密协议',135:'RPC 不应直接暴露到非信任网络',139:'NetBIOS 不应直接暴露到非信任网络',445:'SMB 是高价值攻击面，应限制来源并及时修补',1433:'数据库端口应仅对应用网段开放',1521:'数据库端口应仅对应用网段开放',3306:'数据库端口应仅对应用网段开放',3389:'RDP 应经堡垒机/VPN访问并启用 NLA',5432:'数据库端口应仅对应用网段开放',5900:'VNC 应限制来源并使用强认证',6379:'Redis 应禁止公网访问并启用认证',9200:'Elasticsearch 应启用认证并限制来源',11211:'Memcached 应禁止公网访问',27017:'MongoDB 应启用认证并限制来源'};
+function attackSurfaceAnalysis(records) {
+  var assets={},services={},exposed=[];
+  records.forEach(function(r){
+    if(!/open/i.test(r.state||'open'))return;
+    var a=assets[r.host]||(assets[r.host]={host:r.host,hostname:r.hostname||'',ports:[],services:{},priority:0});
+    a.ports.push(r.port+'/'+r.protocol);if(r.service)a.services[r.service]=1;
+    var sk=r.service||('port-'+r.port);services[sk]=services[sk]||{service:sk,hosts:{},count:0};services[sk].hosts[r.host]=1;services[sk].count++;
+    if(EXPOSED_PORTS[+r.port]){a.priority++;exposed.push([a.priority,r.host,r.port+'/'+r.protocol,r.service||'-',EXPOSED_PORTS[+r.port]])}
+  });
+  var assetRows=Object.keys(assets).map(function(k){var a=assets[k];return [a.host,a.hostname||'-',a.ports.length,a.ports.join(', '),Object.keys(a.services).join(', ')||'-',a.priority]}).sort(function(a,b){return b[5]-a[5]||b[2]-a[2]});
+  var serviceRows=Object.keys(services).map(function(k){var s=services[k];return [s.service,Object.keys(s.hosts).length,s.count]}).sort(function(a,b){return b[1]-a[1]||b[2]-a[2]});
+  exposed.sort(function(a,b){return b[0]-a[0]});exposed.forEach(function(x,i){x[0]=i+1});
+  return [{title:'高关注攻击面',badge:'bg-danger2',columns:['优先级','资产','端口','服务','建议动作'],rows:exposed,empty:'未发现预置的高关注端口'},
+    {title:'资产攻击面排行',badge:'bg-purple',columns:['资产','主机名','开放端口数','端口列表','服务','高关注项'],rows:assetRows},
+    {title:'服务暴露聚合',badge:'bg-orange',columns:['服务','影响资产','出现次数'],rows:serviceRows}];
 }
 
 function parseNmap(text) {
@@ -410,10 +448,11 @@ function parseNmap(text) {
     }
     if (!/^(Starting Nmap|Nmap done|Host is up|PORT\s+STATE|Not shown:|Service detection performed|MAC Address:)/i.test(line)) unparsed.push(line);
   });
+  var summary={"主机":Object.keys(hosts).length,"记录":records.length,"开放端口":open,"过滤端口":filtered};
   return genericResult("Nmap 主机与服务", [
     {key:"host",label:"主机"},{key:"hostname",label:"主机名"},{key:"port",label:"端口"},
     {key:"protocol",label:"协议"},{key:"state",label:"状态"},{key:"service",label:"服务"},{key:"version",label:"版本"}
-  ], records, {"主机":Object.keys(hosts).length,"记录":records.length,"开放端口":open,"过滤端口":filtered}, unparsed);
+  ], records, summary, unparsed, attackSurfaceAnalysis(records));
 }
 
 function parseMasscan(text) {
@@ -433,7 +472,7 @@ function parseMasscan(text) {
   });
   return genericResult("Masscan 开放端口", [
     {key:"host",label:"主机"},{key:"port",label:"端口"},{key:"protocol",label:"协议"},{key:"state",label:"状态"}
-  ], records, {"主机":Object.keys(hosts).length,"开放端口":records.length,"唯一服务":Object.keys(ports).length}, unparsed);
+  ], records, {"主机":Object.keys(hosts).length,"开放端口":records.length,"唯一服务":Object.keys(ports).length}, unparsed, attackSurfaceAnalysis(records));
 }
 
 function parseSecurityLog(text) {
@@ -452,16 +491,26 @@ function parseSecurityLog(text) {
     records.push({ category: category, severity: severity, ip: ip, event: line });
     if (ip !== "-") ips[ip] = 1; categories[category] = (categories[category] || 0) + 1;
   });
+  var sourceMap={};records.forEach(function(x){var s=sourceMap[x.ip]||(sourceMap[x.ip]={ip:x.ip,total:0,high:0,failed:0,categories:{}});s.total++;if(x.severity==='高')s.high++;if(x.category==='登录失败')s.failed++;s.categories[x.category]=1});
+  var sourceRows=Object.keys(sourceMap).map(function(k){var s=sourceMap[k];return [s.ip,s.total,s.high,s.failed,Object.keys(s.categories).join(', ')]}).sort(function(a,b){return b[2]-a[2]||b[3]-a[3]||b[1]-a[1]});
+  var categoryRows=Object.keys(categories).map(function(k){return [k,categories[k],records.length?((categories[k]*100/records.length).toFixed(1)+'%'):'0%']}).sort(function(a,b){return b[1]-a[1]});
   return genericResult("安全日志事件", [
     {key:"severity",label:"级别"},{key:"category",label:"分类"},{key:"ip",label:"IP"},{key:"event",label:"原始事件"}
-  ], records, {"事件":records.length,"相关 IP":Object.keys(ips).length,"高风险":records.filter(function(x){return x.severity==="高";}).length,"登录失败":categories["登录失败"]||0}, unparsed);
+  ], records, {"事件":records.length,"相关 IP":Object.keys(ips).length,"高风险":records.filter(function(x){return x.severity==="高";}).length,"登录失败":categories["登录失败"]||0}, unparsed,
+  [{title:'攻击源/相关地址排行',badge:'bg-danger2',columns:['IP','事件数','高风险','登录失败','涉及分类'],rows:sourceRows},{title:'事件分类聚合',badge:'bg-orange',columns:['分类','数量','占比'],rows:categoryRows}]);
 }
 
 function parseNuclei(text) {
   var records=[],unparsed=[],hosts={},severity={};
   text.split(/\r?\n/).forEach(function(line){if(!line.trim())return;try{var x=JSON.parse(line),info=x.info||{},sev=String(info.severity||x.severity||'unknown').toLowerCase(),host=x.host||x['matched-at']||x.url||'';records.push({severity:sev,id:x['template-id']||x.templateID||'',name:info.name||'',host:host,matcher:x['matcher-name']||'',extracted:(x['extracted-results']||[]).join(', ')});hosts[host]=1;severity[sev]=(severity[sev]||0)+1}catch(e){unparsed.push(line)}});
+  var sw={critical:5,high:4,medium:3,low:2,info:1,unknown:0},templates={},targets={};
+  records.forEach(function(x){var t=templates[x.id]||(templates[x.id]={id:x.id,name:x.name,severity:x.severity,hosts:{},count:0});t.hosts[x.host]=1;t.count++;if((sw[x.severity]||0)>(sw[t.severity]||0))t.severity=x.severity;var h=targets[x.host]||(targets[x.host]={host:x.host,critical:0,high:0,medium:0,total:0,score:0});h.total++;if(h[x.severity]!==undefined)h[x.severity]++;h.score+=sw[x.severity]||0});
+  var priority=records.filter(function(x){return x.severity==='critical'||x.severity==='high'}).sort(function(a,b){return (sw[b.severity]||0)-(sw[a.severity]||0)}).map(function(x,i){return [i+1,x.severity,x.host,x.id,x.name,x.extracted||'复核模板匹配证据并安排修复']});
+  var targetRows=Object.keys(targets).map(function(k){var h=targets[k];return [h.host,h.score,h.critical,h.high,h.medium,h.total]}).sort(function(a,b){return b[1]-a[1]});
+  var templateRows=Object.keys(templates).map(function(k){var t=templates[k];return [t.severity,t.id,t.name,Object.keys(t.hosts).length,t.count]}).sort(function(a,b){return (sw[b[0]]||0)-(sw[a[0]]||0)||b[3]-a[3]});
   return genericResult('Nuclei 漏洞结果', [{key:'severity',label:'等级'},{key:'id',label:'模板 ID'},{key:'name',label:'名称'},{key:'host',label:'目标'},{key:'matcher',label:'匹配器'},{key:'extracted',label:'提取结果'}], records,
-    {'目标':Object.keys(hosts).filter(Boolean).length,'结果':records.length,'高危':(severity.high||0)+(severity.critical||0),'中危':severity.medium||0},unparsed);
+    {'目标':Object.keys(hosts).filter(Boolean).length,'结果':records.length,'高危':(severity.high||0)+(severity.critical||0),'中危':severity.medium||0},unparsed,
+    [{title:'优先处置队列',badge:'bg-danger2',columns:['优先级','等级','目标','模板 ID','漏洞','证据/动作'],rows:priority},{title:'目标风险排行',badge:'bg-purple',columns:['目标','风险分','Critical','High','Medium','发现项'],rows:targetRows},{title:'模板命中聚合',badge:'bg-orange',columns:['等级','模板 ID','名称','影响目标','命中次数'],rows:templateRows}]);
 }
 
 function detectCsvDelimiter(text) {
@@ -477,21 +526,51 @@ function parseCsv(text) {
 }
 function parseNessus(text) {
   var rows=parseCsv(text),normalizeHead=function(x){return x.replace(/^\ufeff/,"").trim().toLowerCase().replace(/[ _-]+/g,"")},head=(rows.shift()||[]).map(normalizeHead),idx=function(){for(var i=0;i<arguments.length;i++){var n=head.indexOf(normalizeHead(arguments[i]));if(n>=0)return n}return -1},at=function(r,n){return n>=0?String(r[n]||'').trim():''};
-  var iName=idx('name','plugin name'),iRisk=idx('risk','severity'),iHost=idx('host','hostname','ip address'),iPort=idx('port'),iProto=idx('protocol'),iId=idx('plugin id','pluginid'),iSynopsis=idx('synopsis','description'),hosts={},risk={};
-  var records=rows.filter(function(r){return r.some(Boolean)}).map(function(r){var host=at(r,iHost),level=at(r,iRisk)||'None';hosts[host]=1;risk[level.toLowerCase()]=(risk[level.toLowerCase()]||0)+1;return {risk:level,host:host,port:at(r,iPort),protocol:at(r,iProto),plugin:at(r,iId),name:at(r,iName),synopsis:at(r,iSynopsis)}});
+  var iName=idx('name','plugin name'),iRisk=idx('risk','severity'),iHost=idx('host','hostname','ip address'),iPort=idx('port'),iProto=idx('protocol'),iId=idx('plugin id','pluginid'),iSynopsis=idx('synopsis'),iDescription=idx('description'),iSolution=idx('solution','remediation'),iCve=idx('cve'),iCvss=idx('cvss v3.0 base score','cvss v3 base score','cvss3 base score','cvss base score','cvss'),iExploit=idx('exploit available','exploitavailable'),iOutput=idx('plugin output','pluginoutput'),iFamily=idx('plugin family','pluginfamily'),hosts={},risk={};
+  var weight={critical:10,high:5,medium:2,low:0.5,none:0,info:0},rank={critical:5,high:4,medium:3,low:2,none:1,info:1};
+  var records=rows.filter(function(r){return r.some(Boolean)}).map(function(r){
+    var host=at(r,iHost),level=at(r,iRisk)||'None',riskKey=level.toLowerCase(),exploit=/^(true|yes|是|available)$/i.test(at(r,iExploit));
+    hosts[host]=1;risk[riskKey]=(risk[riskKey]||0)+1;
+    return {risk:level,host:host,port:at(r,iPort),protocol:at(r,iProto),plugin:at(r,iId),name:at(r,iName),cve:at(r,iCve),cvss:at(r,iCvss),exploit:exploit?'是':'否',family:at(r,iFamily),synopsis:at(r,iSynopsis)||at(r,iDescription),solution:at(r,iSolution),output:at(r,iOutput),_risk:riskKey,_score:(weight[riskKey]||0)+(exploit?3:0)};
+  }).sort(function(a,b){return (rank[b._risk]||0)-(rank[a._risk]||0)||b._score-a._score||a.host.localeCompare(b.host)});
   var invalid=[];
   if(!head.length)invalid.push('CSV 文件为空或无法读取表头');
   if(iHost<0||iName<0)invalid.push('未识别 Nessus 表头，需要至少包含 Host 和 Name（或 Plugin Name）列；当前表头：'+head.join(', '));
-  return genericResult('Nessus 漏洞结果',[{key:'risk',label:'风险'},{key:'host',label:'主机'},{key:'port',label:'端口'},{key:'protocol',label:'协议'},{key:'plugin',label:'Plugin ID'},{key:'name',label:'名称'},{key:'synopsis',label:'摘要'}],records,
-    {'主机':Object.keys(hosts).filter(Boolean).length,'结果':records.length,'Critical':risk.critical||0,'High':risk.high||0},invalid);
+  var columns=[{key:'risk',label:'风险'},{key:'host',label:'主机'},{key:'port',label:'端口'},{key:'protocol',label:'协议'},{key:'plugin',label:'Plugin ID'},{key:'name',label:'名称'},{key:'cve',label:'CVE'},{key:'cvss',label:'CVSS'},{key:'exploit',label:'可利用'},{key:'solution',label:'修复建议'},{key:'synopsis',label:'摘要'}];
+  var summary={'资产':Object.keys(hosts).filter(Boolean).length,'发现项':records.length,'Critical':risk.critical||0,'High':risk.high||0,'Medium':risk.medium||0,'可利用':records.filter(function(x){return x.exploit==='是'}).length};
+
+  var assetMap={},vulnMap={};
+  records.forEach(function(x){
+    var a=assetMap[x.host]||(assetMap[x.host]={host:x.host,critical:0,high:0,medium:0,low:0,total:0,exploitable:0,score:0});
+    a.total++;if(a[x._risk]!==undefined)a[x._risk]++;if(x.exploit==='是')a.exploitable++;a.score+=x._score;
+    var key=x.plugin||x.cve||x.name,v=vulnMap[key]||(vulnMap[key]={plugin:x.plugin,cve:x.cve,name:x.name,risk:x.risk,_risk:x._risk,cvss:x.cvss,solution:x.solution,hosts:{},count:0,exploitable:false,score:0});
+    v.hosts[x.host]=1;v.count++;v.exploitable=v.exploitable||x.exploit==='是';v.score=Math.max(v.score,x._score);
+  });
+  var assets=Object.keys(assetMap).map(function(k){return assetMap[k]}).sort(function(a,b){return b.score-a.score||b.critical-a.critical||b.high-a.high});
+  var vulns=Object.keys(vulnMap).map(function(k){var v=vulnMap[k];v.hostCount=Object.keys(v.hosts).filter(Boolean).length;return v}).sort(function(a,b){return b.score-a.score||b.hostCount-a.hostCount||b.count-a.count});
+  var urgent=records.filter(function(x){return x._risk==='critical'||x._risk==='high'||x.exploit==='是'});
+  var priorityRows=urgent.map(function(x,i){return [i+1,x.risk,x.host+(x.port?':'+x.port:''),x.name,x.cve||'-',x.cvss||'-',x.exploit,x.solution||'请结合插件详情确认补丁、升级或缓解措施']});
+  function badge(level){var k=String(level).toLowerCase(),cls=k==='critical'||k==='high'?'bg-danger2':k==='medium'?'bg-orange':k==='low'?'bg-blue':'bg-gray';return "<span class='sp-badge "+cls+"'>"+esc(level)+"</span>";}
+  var s='';
+  if(invalid.length)s+='<div class="sp-card"><div class="sp-note">'+esc(invalid.join('\n'))+'</div></div>';
+  s+=sectionCard('优先处置队列','bg-danger2',urgent.length,table(['优先级','风险','资产/端口','漏洞','CVE / CVSS','利用','建议动作'],urgent.slice(0,100).map(function(x,i){return '<tr><td><span class="sp-rank">'+(i+1)+'</span></td><td>'+badge(x.risk)+'</td><td class="sp-ip">'+esc(x.host)+(x.port?':'+esc(x.port):'')+'</td><td>'+esc(x.name)+'<div class="sp-muted">Plugin '+esc(x.plugin)+'</div></td><td>'+esc(x.cve||'-')+'<div class="sp-muted">CVSS '+esc(x.cvss||'-')+'</div></td><td>'+(x.exploit==='是'?'<span class="sp-badge bg-purple">可利用</span>':'否')+'</td><td class="sp-action">'+esc(x.solution||'请结合插件详情确认补丁、升级或缓解措施')+'</td></tr>';}),'没有 Critical、High 或已有利用条件的发现'));
+  s+=sectionCard('资产风险排行','bg-purple',assets.length,table(['排名','资产','风险分','Critical','High','Medium','可利用','发现项'],assets.map(function(a,i){return '<tr><td><span class="sp-rank">'+(i+1)+'</span></td><td class="sp-ip">'+esc(a.host)+'</td><td><b>'+a.score.toFixed(1)+'</b></td><td>'+a.critical+'</td><td>'+a.high+'</td><td>'+a.medium+'</td><td>'+a.exploitable+'</td><td>'+a.total+'</td></tr>';}),'没有资产记录'));
+  s+=sectionCard('漏洞聚合（同一漏洞跨资产合并）','bg-orange',vulns.length,table(['风险','漏洞','Plugin / CVE','影响资产','出现次数','利用','统一修复建议'],vulns.map(function(v){return '<tr><td>'+badge(v.risk)+'</td><td>'+esc(v.name)+'</td><td class="sp-secret">'+esc(v.plugin||'-')+'<br>'+esc(v.cve||'-')+'</td><td>'+v.hostCount+'</td><td>'+v.count+'</td><td>'+(v.exploitable?'是':'否')+'</td><td class="sp-action">'+esc(v.solution||'报告未提供 Solution，请查阅对应插件详情')+'</td></tr>';}),'没有漏洞记录'));
+  s+=sectionCard('完整发现明细','bg-gray',records.length,table(columns.map(function(c){return c.label}),records.map(function(x){return '<tr>'+columns.map(function(c){var value=x[c.key]||'';if(c.key==='risk')return '<td>'+badge(value)+'</td>';if(c.key==='host')return '<td class="sp-ip">'+esc(value)+'</td>';if(c.key==='solution'||c.key==='synopsis')return '<td class="sp-action">'+esc(value)+'</td>';return '<td>'+esc(value)+'</td>';}).join('')+'</tr>';}),'没有发现记录'));
+  return {statsHtml:statCard(summary['资产'],'受影响资产')+statCard(summary['发现项'],'发现项')+statCard(summary.Critical,'Critical',summary.Critical?'danger':'')+statCard(summary.High,'High',summary.High?'danger':'')+statCard(summary.Medium,'Medium',summary.Medium?'warn':'')+statCard(summary['可利用'],'已有利用条件',summary['可利用']?'warn':''),sectionsHtml:s,data:{title:'Nessus 风险处置报告',columns:columns,records:records,summary:summary,assets:assets,vulnerabilities:vulns,priority:priorityRows}};
 }
 
 function parseWebDiscovery(text) {
   var records=[],unparsed=[],status={};
   try{var json=JSON.parse(text);if(Array.isArray(json.results))json.results.forEach(function(x){var s=String(x.status||''),url=x.url||((json.config&&json.config.url)||'').replace('FUZZ',x.input&&x.input.FUZZ||'');records.push({status:s,size:x.length||x.words||'',url:url,source:'ffuf',redirect:x.redirectlocation||''});status[s]=(status[s]||0)+1})}
   catch(e){text.split(/\r?\n/).forEach(function(line){if(!line.trim())return;var m=line.match(/^\s*(\d{3})\s+(?:-\s+)?(?:\d+[A-Z]*\s+)?(https?:\/\/\S+|\/\S+)/i)||line.match(/^(https?:\/\/\S+|\/\S+)\s+\(Status:\s*(\d{3})\)/i);if(m){var reversed=/^https?:|^\//.test(m[1]),s=reversed?m[2]:m[1],url=reversed?m[1]:m[2];records.push({status:s,size:'',url:url,source:'dirsearch/gobuster',redirect:''});status[s]=(status[s]||0)+1}else unparsed.push(line)})}
+  var sensitive=/(?:\/|^)(?:\.git|\.env|\.svn|backup|admin|manager|console|swagger|api-docs|actuator|phpmyadmin|server-status|config|database|dump|\.DS_Store)(?:\/|\.|$)/i,hostMap={};
+  var priority=records.filter(function(x){return sensitive.test(x.url)||/^2/.test(x.status)}).map(function(x){var why=sensitive.test(x.url)?'敏感路径/管理入口':'可访问资源';return [sensitive.test(x.url)?'高':'中',x.status,x.url,why,x.redirect||'-']});
+  records.forEach(function(x){var m=x.url.match(/^https?:\/\/([^\/]+)/i),h=m?m[1]:'相对路径';var a=hostMap[h]||(hostMap[h]={host:h,total:0,ok:0,redirect:0,sensitive:0});a.total++;if(/^2/.test(x.status))a.ok++;if(/^3/.test(x.status))a.redirect++;if(sensitive.test(x.url))a.sensitive++});
+  var hostRows=Object.keys(hostMap).map(function(k){var a=hostMap[k];return [a.host,a.total,a.ok,a.redirect,a.sensitive]}).sort(function(a,b){return b[4]-a[4]||b[2]-a[2]});
   return genericResult('Web 目录/路径发现',[{key:'status',label:'状态码'},{key:'size',label:'大小'},{key:'url',label:'URL/路径'},{key:'source',label:'来源'},{key:'redirect',label:'重定向'}],records,
-    {'结果':records.length,'2xx':Object.keys(status).filter(function(s){return /^2/.test(s)}).reduce(function(n,s){return n+status[s]},0),'3xx':Object.keys(status).filter(function(s){return /^3/.test(s)}).reduce(function(n,s){return n+status[s]},0),'4xx':Object.keys(status).filter(function(s){return /^4/.test(s)}).reduce(function(n,s){return n+status[s]},0)},unparsed);
+    {'结果':records.length,'2xx':Object.keys(status).filter(function(s){return /^2/.test(s)}).reduce(function(n,s){return n+status[s]},0),'3xx':Object.keys(status).filter(function(s){return /^3/.test(s)}).reduce(function(n,s){return n+status[s]},0),'4xx':Object.keys(status).filter(function(s){return /^4/.test(s)}).reduce(function(n,s){return n+status[s]},0),'敏感路径':priority.filter(function(x){return x[0]==='高'}).length},unparsed,
+    [{title:'优先复核路径',badge:'bg-danger2',columns:['优先级','状态','URL/路径','原因','重定向'],rows:priority},{title:'站点发现聚合',badge:'bg-purple',columns:['站点','发现数','2xx','3xx','敏感路径'],rows:hostRows}]);
 }
 
 /* =========================================================
@@ -560,6 +639,9 @@ function parseMimikatz(text) {
   var emptyPass = uniq.filter(function(c){ return c.pass === "(null)" || c.pass === ""; });
   var hashes = uniq.filter(function(c){ return c.ntlm; });
   var users = {}; uniq.forEach(function(c){ users[c.user.toLowerCase()] = 1; });
+  var secretUsers={};uniq.forEach(function(c){var secret=credSecret(c);if(secret&&secret!=='(null)'&&secret!=='-'){var key=secret.toLowerCase(),g=secretUsers[key]||(secretUsers[key]={secret:secret,users:{},type:credType(c)});g.users[(c.domain||'-')+'\\'+c.user]=1}});
+  var reuseRows=Object.keys(secretUsers).map(function(k){var g=secretUsers[k],names=Object.keys(g.users);return [g.type,g.secret,names.length,names.join(', '),names.length>1?'立即修改并排查横向复用':'修改或吊销该凭据']}).sort(function(a,b){return b[2]-a[2]});
+  var actionRows=uniq.map(function(c){var type=credType(c),priority=type==='明文'?'立即':type==='哈希'?'高':'中';return [priority,(c.domain||'-')+'\\'+c.user,type,c.section, type==='明文'?'修改密码、排查复用与登录痕迹':type==='哈希'?'重置账号凭据并排查哈希复用':'确认账号策略与登录必要性']});
 
   var statsHtml = "";
   statsHtml += statCard(uniq.length, "凭据条目");
@@ -579,6 +661,10 @@ function parseMimikatz(text) {
   });
 
   var s = "";
+  s += sectionCard("凭据处置队列", "bg-danger2", actionRows.length,
+    table(["优先级","账号","泄露类型","来源","建议动作"], actionRows.map(function(row){return '<tr>'+row.map(function(v){return '<td class="sp-secret">'+esc(v)+'</td>'}).join('')+'</tr>'}), "未解析到凭据"));
+  s += sectionCard("凭据复用分析", "bg-purple", reuseRows.length,
+    table(["类型","密码/哈希","关联账号数","关联账号","建议动作"], reuseRows.map(function(row){return '<tr>'+row.map(function(v){return '<td class="sp-secret">'+esc(v)+'</td>'}).join('')+'</tr>'}), "没有可分析的密码或哈希"));
   s += '<div class="sp-card"><div class="sp-card-title"><i class="bi bi-key"></i>提取的凭据'
     + '<span style="flex:1"></span>'
     + '<button class="sp-btn sp-btn-secondary sp-btn-mini" onclick="copyList(\'plain\')"><i class="bi bi-clipboard" title="复制明文列表"></i></button>'
@@ -594,7 +680,8 @@ function parseMimikatz(text) {
   return {
     statsHtml: statsHtml, sectionsHtml: s,
     data: { creds: uniq, plainCount: plain.length, hashCount: hashes.length,
-            userCount: Object.keys(users).length, emptyCount: emptyPass.length }
+            userCount: Object.keys(users).length, emptyCount: emptyPass.length,
+            analysis: [{title:'凭据处置队列',columns:['优先级','账号','泄露类型','来源','建议动作'],rows:actionRows},{title:'凭据复用分析',columns:['类型','密码/哈希','关联账号数','关联账号','建议动作'],rows:reuseRows}] }
   };
 }
 
@@ -714,6 +801,18 @@ function buildTxt(rp) {
       L.push("", "-- 开放端口 --");
       ips.forEach(function(ip){ L.push(ip + " : " + d.portMap[ip].sort(function(a,b){ return +a - +b; }).join(", ")); });
     }
+    (d.analysis||[]).forEach(function(a){L.push("", "-- "+a.title+" --",a.columns.join("\t"));a.rows.forEach(function(row){L.push(row.join("\t"))})});
+  } else if (rp.tab === "nessus") {
+    var nd = rp.data;
+    L.push(sep, "Nessus 风险处置报告", "生成时间: " + rp.time, sep, "");
+    L.push("[概览] " + Object.keys(nd.summary).map(function(k){return k+": "+nd.summary[k]}).join(" | "), "", "-- 优先处置队列 --");
+    (nd.priority||[]).forEach(function(row){L.push(row.join("\t"))});
+    L.push("", "-- 资产风险排行 --");
+    nd.assets.forEach(function(a,i){L.push((i+1)+". "+a.host+"  风险分:"+a.score.toFixed(1)+"  Critical:"+a.critical+" High:"+a.high+" Medium:"+a.medium+" 可利用:"+a.exploitable)});
+    L.push("", "-- 漏洞聚合 --");
+    nd.vulnerabilities.forEach(function(v){L.push("["+v.risk+"] "+v.name+"  资产:"+v.hostCount+"  次数:"+v.count+"  CVE:"+(v.cve||"-")+"  修复:"+(v.solution||"报告未提供"))});
+    L.push("", "-- 完整明细 --", nd.columns.map(function(c){return c.label}).join("\t"));
+    nd.records.forEach(function(r){L.push(nd.columns.map(function(c){return r[c.key]||""}).join("\t"))});
   } else if (rp.tab === "mimikatz") {
     var cs = rp.data.creds;
     L.push(sep, "mimikatz 凭据解析报告", "生成时间: " + rp.time, sep, "");
@@ -722,9 +821,12 @@ function buildTxt(rp) {
     cs.forEach(function(c){
       L.push("[" + credType(c) + "] " + c.domain + "\\" + c.user + "  =>  " + credSecret(c) + "  (来源: " + c.section + ")");
     });
+    (rp.data.analysis||[]).forEach(function(a){L.push("", "-- "+a.title+" --",a.columns.join("\t"));a.rows.forEach(function(row){L.push(row.join("\t"))})});
   } else {
     L.push(sep, rp.data.title + " 解析报告", "生成时间: " + rp.time, sep, "");
     L.push("[概览] " + Object.keys(rp.data.summary).map(function(k){ return k + ": " + rp.data.summary[k]; }).join(" | "), "");
+    (rp.data.analysis||[]).forEach(function(a){L.push("-- "+a.title+" ("+a.rows.length+") --",a.columns.join("\t"));a.rows.forEach(function(row){L.push(row.join("\t"))});L.push("")});
+    L.push("-- 完整明细 --");
     L.push(rp.data.columns.map(function(c){ return c.label; }).join("\t"));
     rp.data.records.forEach(function(r){ L.push(rp.data.columns.map(function(c){ return r[c.key] || ""; }).join("\t")); });
   }
@@ -756,6 +858,14 @@ function buildExcel(rp) {
       return [ip, d.portMap[ip].length, d.portMap[ip].sort(function(a,b){ return +a - +b; }).join(", ")];
     });
     if (portRows.length) sheets.push(sheet("开放端口", ["主机", "端口数", "端口列表"], portRows));
+    (d.analysis||[]).forEach(function(a,i){sheets.push(sheet((i+1)+"_"+a.title,a.columns,a.rows))});
+  } else if (rp.tab === "nessus") {
+    var nd = rp.data;
+    sheets.push(sheet("概览", ["项目", "数值"], Object.keys(nd.summary).map(function(k){return [k,nd.summary[k]]})));
+    sheets.push(sheet("优先处置队列", ["优先级","风险","资产/端口","漏洞","CVE","CVSS","可利用","修复建议"], nd.priority||[]));
+    sheets.push(sheet("资产风险排行", ["资产","风险分","Critical","High","Medium","Low","可利用","发现项"], nd.assets.map(function(a){return [a.host,a.score.toFixed(1),a.critical,a.high,a.medium,a.low,a.exploitable,a.total]})));
+    sheets.push(sheet("漏洞聚合", ["风险","漏洞","Plugin ID","CVE","CVSS","影响资产","出现次数","可利用","修复建议"], nd.vulnerabilities.map(function(v){return [v.risk,v.name,v.plugin,v.cve,v.cvss,v.hostCount,v.count,v.exploitable?"是":"否",v.solution]})));
+    sheets.push(sheet("完整发现", nd.columns.map(function(c){return c.label}), nd.records.map(function(r){return nd.columns.map(function(c){return r[c.key]||""})})));
   } else if (rp.tab === "mimikatz") {
     sheets.push(sheet("概览", ["项目", "数值"], [
       ["生成时间", rp.time], ["凭据条目", rp.data.creds.length], ["明文密码", rp.data.plainCount],
@@ -763,8 +873,10 @@ function buildExcel(rp) {
     ]));
     sheets.push(sheet("凭据", ["类型", "用户名", "域", "密码/哈希", "来源"],
       rp.data.creds.map(function(c){ return [credType(c), c.user, c.domain, credSecret(c), c.section]; })));
+    (rp.data.analysis||[]).forEach(function(a,i){sheets.push(sheet((i+1)+"_"+a.title,a.columns,a.rows))});
   } else {
     sheets.push(sheet("概览", ["项目", "数值"], Object.keys(rp.data.summary).map(function(k){ return [k, rp.data.summary[k]]; })));
+    (rp.data.analysis||[]).forEach(function(a,i){sheets.push(sheet((i+1)+"_"+a.title,a.columns,a.rows))});
     sheets.push(sheet("解析结果", rp.data.columns.map(function(c){ return c.label; }),
       rp.data.records.map(function(r){ return rp.data.columns.map(function(c){ return r[c.key] || ""; }); })));
   }
@@ -801,6 +913,19 @@ function buildMd(rp) {
         L.push("| " + ip + " | " + d.portMap[ip].length + " | " + d.portMap[ip].sort(function(a,b){ return +a - +b; }).join(", ") + " |");
       });
     }
+    (d.analysis||[]).forEach(function(a){L.push("", "## "+a.title, "", "| "+a.columns.map(mdEsc).join(" | ")+" |", "|"+a.columns.map(function(){return "---"}).join("|")+"|");a.rows.forEach(function(row){L.push("| "+row.map(mdEsc).join(" | ")+" |")})});
+  } else if (rp.tab === "nessus") {
+    var nd = rp.data;
+    L.push("# Nessus 风险处置报告", "", "> 生成时间："+rp.time, "", "## 概览", "", "| 项目 | 数值 |", "|---|---|");
+    Object.keys(nd.summary).forEach(function(k){L.push("| "+mdEsc(k)+" | "+nd.summary[k]+" |")});
+    L.push("", "## 优先处置队列", "", "| 优先级 | 风险 | 资产/端口 | 漏洞 | CVE | CVSS | 可利用 | 修复建议 |", "|---:|---|---|---|---|---:|---|---|");
+    (nd.priority||[]).forEach(function(row){L.push("| "+row.map(mdEsc).join(" | ")+" |")});
+    L.push("", "## 资产风险排行", "", "| 资产 | 风险分 | Critical | High | Medium | 可利用 |", "|---|---:|---:|---:|---:|---:|");
+    nd.assets.forEach(function(a){L.push("| "+mdEsc(a.host)+" | "+a.score.toFixed(1)+" | "+a.critical+" | "+a.high+" | "+a.medium+" | "+a.exploitable+" |")});
+    L.push("", "## 漏洞聚合", "", "| 风险 | 漏洞 | CVE | 影响资产 | 次数 | 修复建议 |", "|---|---|---|---:|---:|---|");
+    nd.vulnerabilities.forEach(function(v){L.push("| "+mdEsc(v.risk)+" | "+mdEsc(v.name)+" | "+mdEsc(v.cve||"-")+" | "+v.hostCount+" | "+v.count+" | "+mdEsc(v.solution||"报告未提供")+" |")});
+    L.push("", "## 完整明细", "", "| "+nd.columns.map(function(c){return mdEsc(c.label)}).join(" | ")+" |", "|"+nd.columns.map(function(){return "---"}).join("|")+"|");
+    nd.records.forEach(function(r){L.push("| "+nd.columns.map(function(c){return mdEsc(r[c.key]||"")}).join(" | ")+" |")});
   } else if (rp.tab === "mimikatz") {
     L.push("# mimikatz 凭据解析报告", "", "> 生成时间：" + rp.time, "");
     L.push("## 概览", "", "| 项目 | 数值 |", "|---|---|",
@@ -811,9 +936,11 @@ function buildMd(rp) {
     rp.data.creds.forEach(function(c){
       L.push("| " + credType(c) + " | " + mdEsc(c.user) + " | " + mdEsc(c.domain) + " | `" + mdEsc(credSecret(c)) + "` | " + mdEsc(c.section) + " |");
     });
+    (rp.data.analysis||[]).forEach(function(a){L.push("", "## "+a.title, "", "| "+a.columns.map(mdEsc).join(" | ")+" |", "|"+a.columns.map(function(){return "---"}).join("|")+"|");a.rows.forEach(function(row){L.push("| "+row.map(mdEsc).join(" | ")+" |")})});
   } else {
     L.push("# " + rp.data.title + " 解析报告", "", "> 生成时间：" + rp.time, "", "## 概览", "", "| 项目 | 数值 |", "|---|---|");
     Object.keys(rp.data.summary).forEach(function(k){ L.push("| " + mdEsc(k) + " | " + rp.data.summary[k] + " |"); });
+    (rp.data.analysis||[]).forEach(function(a){L.push("", "## "+a.title, "", "| "+a.columns.map(mdEsc).join(" | ")+" |", "|"+a.columns.map(function(){return "---"}).join("|")+"|");a.rows.forEach(function(row){L.push("| "+row.map(mdEsc).join(" | ")+" |")})});
     L.push("", "## 解析结果", "", "| " + rp.data.columns.map(function(c){return mdEsc(c.label);}).join(" | ") + " |",
       "|" + rp.data.columns.map(function(){return "---";}).join("|") + "|");
     rp.data.records.forEach(function(r){ L.push("| " + rp.data.columns.map(function(c){return mdEsc(r[c.key] || "");}).join(" | ") + " |"); });
@@ -841,6 +968,15 @@ function buildHtmlReport(rp) {
       + htable(["类型", "目标", "原始行"], d.vulns.map(function(v){ return [v.type, v.host, v.raw]; }));
     html += "<h2>站点信息（" + d.sites.length + "）</h2>"
       + htable(["URL", "状态码", "标题"], d.sites.map(function(x){ return [x.url, x.code, x.title]; }));
+    (d.analysis||[]).forEach(function(a){html+="<h2>"+xmlEsc(a.title)+"</h2>"+htable(a.columns,a.rows)});
+  } else if (rp.tab === "nessus") {
+    var nd=rp.data;
+    html+="<h1>Nessus 风险处置报告</h1><p>生成时间："+xmlEsc(rp.time)+"</p>";
+    html+="<h2>概览</h2>"+htable(["项目","数值"],Object.keys(nd.summary).map(function(k){return [k,nd.summary[k]]}));
+    html+="<h2>优先处置队列</h2>"+htable(["优先级","风险","资产/端口","漏洞","CVE","CVSS","可利用","修复建议"],nd.priority||[]);
+    html+="<h2>资产风险排行</h2>"+htable(["资产","风险分","Critical","High","Medium","可利用"],nd.assets.map(function(a){return [a.host,a.score.toFixed(1),a.critical,a.high,a.medium,a.exploitable]}));
+    html+="<h2>漏洞聚合</h2>"+htable(["风险","漏洞","CVE","影响资产","次数","修复建议"],nd.vulnerabilities.map(function(v){return [v.risk,v.name,v.cve||"-",v.hostCount,v.count,v.solution||"报告未提供"]}));
+    html+="<h2>完整明细</h2>"+htable(nd.columns.map(function(c){return c.label}),nd.records.map(function(r){return nd.columns.map(function(c){return r[c.key]||""})}));
   } else if (rp.tab === "mimikatz") {
     html += "<h1>mimikatz 凭据解析报告</h1><p>生成时间：" + xmlEsc(rp.time) + "</p>";
     html += "<h2>概览</h2>" + htable(["项目", "数值"], [
@@ -848,9 +984,11 @@ function buildHtmlReport(rp) {
       ["唯一用户", rp.data.userCount], ["空密码", rp.data.emptyCount]]);
     html += "<h2>凭据明细</h2>" + htable(["类型", "用户名", "域", "密码/哈希", "来源"],
       rp.data.creds.map(function(c){ return [credType(c), c.user, c.domain, credSecret(c), c.section]; }));
+    (rp.data.analysis||[]).forEach(function(a){html+="<h2>"+xmlEsc(a.title)+"</h2>"+htable(a.columns,a.rows)});
   } else {
     html += "<h1>" + xmlEsc(rp.data.title) + " 解析报告</h1><p>生成时间：" + xmlEsc(rp.time) + "</p>";
     html += "<h2>概览</h2>" + htable(["项目", "数值"], Object.keys(rp.data.summary).map(function(k){return [k,rp.data.summary[k]];}));
+    (rp.data.analysis||[]).forEach(function(a){html+="<h2>"+xmlEsc(a.title)+"</h2>"+htable(a.columns,a.rows)});
     html += "<h2>解析结果</h2>" + htable(rp.data.columns.map(function(c){return c.label;}),
       rp.data.records.map(function(r){return rp.data.columns.map(function(c){return r[c.key] || "";});}));
   }

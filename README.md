@@ -10,7 +10,7 @@ SecBox-Web 是一套面向授权安全测试、应急响应、安全分析、CTF
 ## 功能概览
 
 - 资产与情报：资产分拣、个人信息识别、Google/Bing/百度信息收集语法
-- 扫描报告：fscan、Nmap、Masscan、Nuclei、Nessus、ffuf、dirsearch 与安全日志解析
+- 扫描报告：fscan、Nmap、Masscan、Nuclei、Nessus、ffuf、dirsearch、安全日志与 mimikatz 解析，提供优先处置队列、资产风险排行、攻击面/漏洞/凭据聚合，并支持 TXT、Excel、Markdown、PDF 导出
 - 分析工具：文件特征分析、HTTP 请求/响应分析、Windows 进程识别、提权辅助
 - 编码与令牌：加解密转换、JSFuck、JWT 生成、解析与安全测试
 - 辅助生成：Shell 反连、文件传输命令、FRP 配置、社工字典
