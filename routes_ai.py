@@ -33,12 +33,14 @@ _login_failure_limiter = FixedWindowLimiter(max_keys=10000)
 
 
 def _config():
+    api_url = os.environ.get('AI_API_URL', '').strip()
+    api_key = os.environ.get('AI_API_KEY', '').strip()
+    model = os.environ.get('AI_MODEL', '').strip()
     return {
-        'enabled': bool(os.environ.get('AI_API_KEY', '').strip()),
-        'api_url': os.environ.get(
-            'AI_API_URL', 'https://api.stepfun.com/v1/chat/completions').strip(),
-        'api_key': os.environ.get('AI_API_KEY', '').strip(),
-        'model': os.environ.get('AI_MODEL', 'step-router-v1').strip(),
+        'enabled': bool(api_url and api_key and model),
+        'api_url': api_url,
+        'api_key': api_key,
+        'model': model,
         'timeout': max(10, int(os.environ.get('AI_TIMEOUT_SECONDS', '120'))),
         'max_output_tokens': max(
             128, int(os.environ.get('AI_MAX_OUTPUT_TOKENS', '1600'))),
@@ -281,7 +283,7 @@ def create_artifact():
         return _access_denied()
     cfg = _config()
     if not cfg['enabled']:
-        return jsonify({'error': '服务端尚未配置 AI_API_KEY'}), 503
+        return jsonify({'error': '服务端尚未完整配置 AI 服务'}), 503
     raw = request.get_data(cache=True)
     if len(raw) > MAX_ARTIFACT_BYTES:
         return jsonify({'error': 'AI 分析数据超过 3MB，请缩小报告范围'}), 413

@@ -108,6 +108,20 @@ docker compose exec security-tools python manage.py generate-oob-password
 
 邮件分析和报告解析支持可选的 AI 深度研判与连续对话。基础解析与本地导出不依赖 AI；只有用户输入访问密码并主动点击“开始 AI 分析”后，服务端才会向部署者配置的模型服务发起请求。
 
+如需启用，请在项目根目录的本地 `.env` 文件中填写以下配置。示例不预置任何服务地址、密钥或模型值：
+
+```dotenv
+AI_API_URL=
+AI_API_KEY=
+AI_MODEL=
+```
+
+- `AI_API_URL`：填写兼容 Chat Completions 协议的完整接口地址
+- `AI_API_KEY`：填写模型服务提供方签发的服务端访问凭据
+- `AI_MODEL`：填写该服务实际支持的模型标识
+
+三项均配置后 AI 功能才会启用。`.env` 已被 Git 忽略，请勿把填写真实值后的文件提交到仓库或展示在截图、日志中。
+
 AI 功能与 OOB 共用首次启动生成的访问密码，密码重置后已有 AI 登录 Cookie 同步失效。无需配置独立的 AI 登录密码。
 
 发送范围与数据处理：
@@ -131,6 +145,9 @@ AI 功能与 OOB 共用首次启动生成的访问密码，密码重置后已有
 | `TRUST_PROXY_HEADERS` | `0` | 可信反向代理环境下按需启用 |
 | `OOB_SESSION_TTL_HOURS` | `24` | OOB 用户凭证有效期（小时） |
 | `OOB_MAX_CONNS` | `200` | RMI/LDAP 并发连接上限 |
+| `AI_API_URL` | 未设置 | 模型服务的 Chat Completions 接口地址 |
+| `AI_API_KEY` | 未设置 | 模型服务的服务端访问凭据 |
+| `AI_MODEL` | 未设置 | 模型服务支持的模型标识 |
 
 如需指定回调域名，可在启动时设置：
 

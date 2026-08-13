@@ -13,8 +13,9 @@ class AIRoutesTest(unittest.TestCase):
     def setUpClass(cls):
         cls.tempdir = tempfile.TemporaryDirectory()
         cls.runtime_dir = tempfile.TemporaryDirectory()
+        os.environ['AI_API_URL'] = 'https://ai.invalid/v1/chat/completions'
         os.environ['AI_API_KEY'] = 'test-key-not-real'
-        os.environ['AI_MODEL'] = 'step-router-v1'
+        os.environ['AI_MODEL'] = 'test-model'
         os.environ['AI_DATA_DIR'] = cls.tempdir.name
         os.environ['APP_STATE_DIR'] = cls.runtime_dir.name
         from runtime_secrets import ensure_state
