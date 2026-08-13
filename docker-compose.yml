@@ -1,5 +1,5 @@
 # SecBox-Web - Docker Compose 编排
-# 首次启动前：复制 oob-ports.env.example 为 .env，并填写三个 OOB 端口。
+# 首次启动前：复制 .env.example 为 .env，并填写所需配置。
 # 设置位置：项目根目录 .env
 # 启动：docker compose up -d --build && docker compose logs security-tools
 

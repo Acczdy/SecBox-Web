@@ -33,12 +33,12 @@ git clone https://github.com/Acczdy/SecBox-Web.git
 cd SecBox-Web
 ```
 
-### 2. 设置 OOB 端口
+### 2. 设置环境参数
 
 复制配置模板：
 
 ```bash
-cp oob-ports.env.example .env
+cp .env.example .env
 ```
 
 编辑项目根目录的 `.env`，为三种 OOB 服务分别设置一个 TCP 高位端口：
@@ -120,7 +120,7 @@ AI_MODEL=
 - `AI_API_KEY`：填写模型服务提供方签发的服务端访问凭据
 - `AI_MODEL`：填写该服务实际支持的模型标识
 
-三项均配置后 AI 功能才会启用。`.env` 已被 Git 忽略，请勿把填写真实值后的文件提交到仓库或展示在截图、日志中。
+三项均配置后 AI 功能才会启用。
 
 AI 功能与 OOB 共用首次启动生成的访问密码，密码重置后已有 AI 登录 Cookie 同步失效。无需配置独立的 AI 登录密码。
 
