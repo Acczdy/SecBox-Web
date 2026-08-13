@@ -106,19 +106,7 @@ docker compose exec security-tools python manage.py generate-oob-password
 
 ## 邮件与报告 AI 分析（可选）
 
-邮件分析和报告解析支持可选的 AI 深度研判与连续对话。基础解析与本地导出不依赖 AI；只有用户输入访问密码并主动点击“开始 AI 分析”后，服务端才会向配置的兼容 OpenAI Chat Completions 接口发起请求。
-
-在项目根目录 `.env` 中设置：
-
-```dotenv
-AI_API_URL=https://api.stepfun.com/v1/chat/completions
-AI_API_KEY=<服务端 API 密钥>
-AI_MODEL=step-router-v1
-AI_TIMEOUT_SECONDS=120
-AI_MAX_OUTPUT_TOKENS=1600
-AI_TRUST_ENV_PROXY=0
-AI_DATA_RETENTION_HOURS=24
-```
+邮件分析和报告解析支持可选的 AI 深度研判与连续对话。基础解析与本地导出不依赖 AI；只有用户输入访问密码并主动点击“开始 AI 分析”后，服务端才会向部署者配置的模型服务发起请求。
 
 AI 功能与 OOB 共用首次启动生成的访问密码，密码重置后已有 AI 登录 Cookie 同步失效。无需配置独立的 AI 登录密码。
 
@@ -127,10 +115,7 @@ AI 功能与 OOB 共用首次启动生成的访问密码，密码重置后已有
 - 邮件仅发送精简的结构化分析结果及必要正文；不发送附件二进制、原始邮件和 HTML 正文
 - 扫描报告的大列表最多发送前 500 条，聚合分析每组最多发送前 300 条
 - 对话与结构化分析上下文保存在运行时目录的 SQLite 数据库中，默认保留 24 小时
-- 不启用 `AI_TRUST_ENV_PROXY` 时，AI 请求不会继承系统代理环境变量
 - AI 输出属于辅助研判结果，应结合原始证据进行人工复核
-
-`AI_API_KEY` 留空时 AI 功能保持禁用，其他功能不受影响。API 密钥属于敏感凭据，应限制配置文件和运行环境的读取权限。
 
 ## 部署参数
 
@@ -146,11 +131,6 @@ AI 功能与 OOB 共用首次启动生成的访问密码，密码重置后已有
 | `TRUST_PROXY_HEADERS` | `0` | 可信反向代理环境下按需启用 |
 | `OOB_SESSION_TTL_HOURS` | `24` | OOB 用户凭证有效期（小时） |
 | `OOB_MAX_CONNS` | `200` | RMI/LDAP 并发连接上限 |
-| `AI_API_URL` | 阶跃星辰兼容接口 | AI Chat Completions 接口地址 |
-| `AI_API_KEY` | 空 | AI 服务端 API 密钥；为空时禁用 AI |
-| `AI_MODEL` | `step-router-v1` | AI 模型名称 |
-| `AI_DATA_RETENTION_HOURS` | `24` | AI 会话与分析上下文保留时间 |
-| `AI_TRUST_ENV_PROXY` | `0` | 是否允许 AI 请求继承系统代理配置 |
 
 如需指定回调域名，可在启动时设置：
 
