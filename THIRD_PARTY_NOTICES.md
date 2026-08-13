@@ -18,7 +18,7 @@ SecBox-Web 是对公开安全工具、公开资料和第一代 Test-tools 的整
 | Google Hacking | [r00tSe7en/GoogleHackingTool](https://github.com/r00tSe7en/GoogleHackingTool/) | 以原仓库当前声明为准 |
 | 安全知识与载荷参考 | [zhaoxuya520/reverse-skill](https://github.com/zhaoxuya520/reverse-skill) | 以原仓库当前声明为准 |
 
-此外，前端及 Python 依赖分别遵循其发布包中的许可证，包括 Flask、Werkzeug、Jinja2、Bootstrap Icons、CryptoJS、JSFuck、sm-crypto、cryptography、openpyxl 与 python-docx 等。
+此外，前端及 Python 依赖分别遵循其发布包中的许可证，包括 Flask、Werkzeug、Jinja2、Requests、Bootstrap Icons、CryptoJS、JSFuck、sm-crypto、cryptography、openpyxl 与 python-docx 等。
 
 ## 许可边界
 

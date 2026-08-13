@@ -16,6 +16,7 @@ import os
 from routes_tools import tools_bp
 from routes_oob import oob_bp
 from routes_parser import parser_bp
+from routes_ai import ai_bp
 from oob_services import platform, extract_token, start_oob_services, record_http_callback
 from security_controls import FixedWindowLimiter, is_same_origin_request, request_client_address
 from runtime_secrets import ensure_state
@@ -36,6 +37,8 @@ app.register_blueprint(tools_bp)
 app.register_blueprint(oob_bp)
 # 注册扫描结果解析蓝图（纯前端解析）
 app.register_blueprint(parser_bp)
+# 邮件与扫描报告的可选 AI 深度分析。
+app.register_blueprint(ai_bp)
 
 
 @app.before_request
@@ -49,7 +52,9 @@ def public_saas_request_guard():
         return None
     client = request_client_address(request)
     endpoint = request.endpoint or request.path
-    if endpoint in ('tools.jwt_crack', 'tools.jwt_crack_file', 'tools.api_jwt_crack',
+    if request.path.startswith('/api/ai/'):
+        limit, window = 30, 60
+    elif endpoint in ('tools.jwt_crack', 'tools.jwt_crack_file', 'tools.api_jwt_crack',
                       'tools.email_analyze_api', 'tools.api_email_analyze',
                       'tools.email_analyze_export'):
         limit, window = 20, 60
@@ -81,7 +86,8 @@ def add_security_headers(response):
     )
     if request.is_secure:
         response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-    if request.path.startswith(('/oob/', '/email-analyze')) or request.path == '/oob':
+    if (request.path.startswith(('/oob/', '/email-analyze', '/api/ai/')) or
+            request.path == '/oob'):
         response.cache_control.no_store = True
         response.cache_control.no_cache = True
         response.cache_control.must_revalidate = True

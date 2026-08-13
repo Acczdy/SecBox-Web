@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ai-chat.css') }}">
 <style>
 /* 报告解析样式 */
 .sp-wrap { padding: 15px; }
@@ -135,6 +136,7 @@ details.sp-raw summary { cursor: pointer; color: #666; font-size: 0.85rem; }
         <button class="sp-btn sp-btn-mini" onclick="exportReport('md')"><i class="bi bi-markdown"></i> Markdown</button>
         <button class="sp-btn sp-btn-mini" onclick="exportReport('pdf')"><i class="bi bi-file-earmark-pdf"></i> PDF（浏览器打印）</button>
         <span class="sp-note" style="margin:0 0 0 8px; padding:3px 10px;">导出在本地生成，内容不经过服务器</span>
+        <span style="flex:1"></span><div id="reportAiChat"></div>
       </div>
     </div>
     <div id="sections"></div>
@@ -145,10 +147,12 @@ details.sp-raw summary { cursor: pointer; color: #666; font-size: 0.85rem; }
 <!-- 复制成功提示（与传输命令页同款：右下角绿色） -->
 <div id="spToast" style="position:fixed;bottom:20px;right:20px;z-index:1000;display:none;padding:10px 15px;border-radius:6px;border-left:4px solid #009e76;background:rgba(0,158,118,0.15);color:#009e76;font-size:0.9rem;"></div>
 
+<script src="{{ url_for('static', filename='js/ai-chat.js') }}"></script>
 <script>
 var CURRENT_TAB = "fscan";
 var IMPORTED_TEXT = "", IMPORTED_FILE = null;
 var MAX_FILE_SIZE = 100 * 1024 * 1024;
+var reportAiChat = null;
 
 function switchTab(tab) {
   CURRENT_TAB = tab;
@@ -191,6 +195,23 @@ function doParse() {
   document.getElementById("resultArea").style.display = "block";
   document.getElementById("statsRow").innerHTML = res.statsHtml;
   document.getElementById("sections").innerHTML = res.sectionsHtml;
+  if(reportAiChat)reportAiChat.destroy();
+  reportAiChat=new SecurityAIChat('#reportAiChat',{
+    quickQuestions:['列出最优先修复的五项','解释最高风险资产','生成一周修复计划','生成管理层摘要'],
+    getArtifact:function(){
+      if(!window._lastParse)return null;
+      var source=window._lastParse.data||{},compact={};
+      Object.keys(source).forEach(function(key){
+        var value=source[key];
+        if(key==='records'&&Array.isArray(value))compact[key]=value.slice(0,500);
+        else if(key==='analysis'&&Array.isArray(value))compact[key]=value.map(function(a){return {title:a.title,columns:a.columns,rows:(a.rows||[]).slice(0,300)}});
+        else if(Array.isArray(value))compact[key]=value.slice(0,500);
+        else compact[key]=value;
+      });
+      compact.ai_context_note='大列表最多发送前500条，聚合分析每组最多300条；页面本地解析与导出仍保留完整结果。';
+      return {type:'scan_report',filename:window._lastParse.file||CURRENT_TAB+' 报告',parser_type:CURRENT_TAB,data:compact};
+    }
+  });
   } catch (error) {
     alert("解析失败：" + error.message);
   } finally { setParseBusy(false); }
@@ -201,6 +222,7 @@ function clearAll() {
   document.getElementById("rawInput").value = "";
   resetImportedFile();
   document.getElementById("resultArea").style.display = "none";
+  if(reportAiChat)reportAiChat.destroy();
 }
 
 function setParseBusy(busy) {
@@ -262,7 +284,7 @@ var IP_RE = /((?:\d{1,3}\.){3}\d{1,3})/;
 
 function parseFscan(text) {
   var lines = text.split(/\r?\n/);
-  var creds = [], vulns = [], sites = [], netbios = [], infos = [];
+  var creds = [], vulns = [], sites = [], netbios = [], infos = [], aliveHosts = [];
   var portMap = {}, ipSet = {}, unparsed = [];
 
   lines.forEach(function(raw){
@@ -271,6 +293,14 @@ function parseFscan(text) {
     var m;
     var ipm = line.match(IP_RE);
     if (ipm) ipSet[ipm[1]] = 1;
+
+    // 存活探测: [*] Icmp 192.168.88.10 is alive / [+] 192.168.88.10 is alive
+    m = line.match(/^\[(?:\*|\+)\]\s*(?:Icmp\s+)?((?:\d{1,3}\.){3}\d{1,3})\s+is\s+alive\b/i);
+    if (m) {
+      if (aliveHosts.indexOf(m[1]) < 0) aliveHosts.push(m[1]);
+      ipSet[m[1]] = 1;
+      return;
+    }
 
     // 暴破成功凭据: [+] Service:IP:PORT user pass
     m = line.match(/^\[\+\]\s*([A-Za-z][\w\.\-]{1,20})\s*[:：]\s*((?:\d{1,3}\.){3}\d{1,3})[:：](\d+)\s+(\S+)\s*(.*)$/);
@@ -317,12 +347,19 @@ function parseFscan(text) {
 
   var statsHtml = "";
   statsHtml += statCard(hosts, "目标主机");
+  statsHtml += statCard(aliveHosts.length, "存活主机");
   statsHtml += statCard(portCount, "开放端口");
   statsHtml += statCard(creds.length, "暴破成功", creds.length ? "danger" : "");
   statsHtml += statCard(vulns.length, "漏洞/风险", vulns.length ? "warn" : "");
   statsHtml += statCard(sites.length, "站点标题");
 
   var s = "";
+  if (aliveHosts.length) {
+    s += sectionCard("ICMP 存活主机", "bg-green", aliveHosts.length,
+      table(["主机", "状态"], aliveHosts.sort().map(function(ip){
+        return "<tr><td class='sp-ip'>" + esc(ip) + "</td><td><span class='sp-badge bg-green'>alive</span></td></tr>";
+      })));
+  }
   // 1. 凭据
   s += sectionCard("暴破成功 / 获取凭据", "bg-danger2", creds.length,
     table(["服务", "地址", "用户名", "密码"], creds.map(function(c){
@@ -377,7 +414,8 @@ function parseFscan(text) {
   return {
     statsHtml: statsHtml, sectionsHtml: s,
     data: { hosts: hosts, portCount: portCount, creds: creds, vulns: vulns,
-            sites: sites, netbios: netbios, portMap: portMap, analysis: analysis }
+            sites: sites, netbios: netbios, portMap: portMap,
+            aliveHosts: aliveHosts, analysis: analysis }
   };
 }
 

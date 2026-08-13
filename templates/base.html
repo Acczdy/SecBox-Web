@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script>document.documentElement.dataset.theme = localStorage.getItem('ui-theme') || 'light';</script>
+    <script>
+        document.documentElement.dataset.theme = localStorage.getItem('ui-theme') || 'light';
+        if (localStorage.getItem('sidebarCollapsed') === 'true') {
+            document.documentElement.classList.add('sidebar-precollapsed');
+        }
+    </script>
     <title>{% if title %}{{ title }} - {% endif %}安全辅助工具平台</title>
     <!-- Bootstrap 5 CSS -->
     <link href="{{ url_for('static', filename='css/vendor/bootstrap.min.css') }}" rel="stylesheet">
@@ -138,10 +143,6 @@
                     <span>JWT分析</span>
                 </a>
             </div>
-
-            <div class="sidebar-section-label"><span>漏洞情报</span></div>
-            <div class="nav-item">
-            </div>
         </nav>
 
         <div class="sidebar-appearance">
@@ -239,6 +240,7 @@
                 toggleIcon.classList.remove('bi-chevron-left');
                 toggleIcon.classList.add('bi-chevron-right');
             }
+            document.documentElement.classList.add('sidebar-ready');
 
             // 切换按钮
             toggleBtn.addEventListener('click', function(e) {
@@ -247,10 +249,12 @@
                 mainContent.classList.toggle('expanded');
 
                 if (sidebar.classList.contains('collapsed')) {
+                    document.documentElement.classList.add('sidebar-precollapsed');
                     toggleIcon.classList.remove('bi-chevron-left');
                     toggleIcon.classList.add('bi-chevron-right');
                     localStorage.setItem('sidebarCollapsed', 'true');
                 } else {
+                    document.documentElement.classList.remove('sidebar-precollapsed');
                     toggleIcon.classList.remove('bi-chevron-right');
                     toggleIcon.classList.add('bi-chevron-left');
                     localStorage.setItem('sidebarCollapsed', 'false');

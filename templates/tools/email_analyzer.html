@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ai-chat.css') }}">
 <style>
 .email-wrap {
   padding: 15px;
@@ -634,6 +635,7 @@
     <div class="email-result-header">
       <h4>&#128221; 分析结果</h4>
       <div class="email-export">
+        <div id="emailAiChat"></div>
         <button class="email-export-btn" onclick="showExportModal()">&#128190; 导出报告</button>
       </div>
     </div>
@@ -730,10 +732,13 @@
   </div>
 </div>
 
+<script src="{{ url_for('static', filename='js/ai-chat.js') }}"></script>
 <script>
 let emailContent = '';
 let analysisData = null;
 let selectedFormat = 'excel';
+let emailFileName = '粘贴邮件.eml';
+let emailAiChat = null;
 
 // 文件拖放
 const dropZone = document.getElementById('dropZone');
@@ -762,6 +767,7 @@ function handleFile(file) {
     return;
   }
   const reader = new FileReader();
+  emailFileName = file.name;
   reader.onload = (e) => {
     emailContent = e.target.result;
     emailPaste.value = emailContent.substring(0, 2000) + (emailContent.length > 2000 ? '\n... (已截断显示)' : '');
@@ -905,6 +911,17 @@ function displayResult(data) {
 
   // 原始内容
   document.getElementById('rawContent').textContent = data.raw_content;
+  if (emailAiChat) emailAiChat.destroy();
+  emailAiChat = new SecurityAIChat('#emailAiChat', {
+    quickQuestions: ['为什么判定为钓鱼邮件？','提取并整理 IOC','生成邮件网关排查条件','生成事件处置步骤'],
+    getArtifact: function(){
+      const safe = JSON.parse(JSON.stringify(analysisData || {}));
+      delete safe.raw_content; delete safe.html_body;
+      (safe.attachments || []).forEach(a => delete a.data);
+      if (safe.text_body) safe.text_body = safe.text_body.slice(0, 30000);
+      return {type:'email', filename:emailFileName, parser_type:'email', data:safe};
+    }
+  });
 }
 
 function formatAddr(a) {

@@ -10,12 +10,13 @@ SecBox-Web 是一套面向授权安全测试、应急响应、安全分析、CTF
 ## 功能概览
 
 - 资产与情报：资产分拣、个人信息识别、Google/Bing/百度信息收集语法
-- 扫描报告：fscan、Nmap、Masscan、Nuclei、Nessus、ffuf、dirsearch、安全日志与 mimikatz 解析，提供优先处置队列、资产风险排行、攻击面/漏洞/凭据聚合，并支持 TXT、Excel、Markdown、PDF 导出
+- 扫描报告：fscan（含 ICMP 存活主机）、Nmap、Masscan、Nuclei、Nessus、ffuf、dirsearch、安全日志与 mimikatz 解析，提供优先处置队列、资产风险排行、攻击面/漏洞/凭据聚合，并支持 TXT、Excel、Markdown、PDF 导出
 - 分析工具：文件特征分析、HTTP 请求/响应分析、Windows 进程识别、提权辅助
 - 编码与令牌：加解密转换、JSFuck、JWT 生成、解析与安全测试
 - 辅助生成：Shell 反连、文件传输命令、FRP 配置、社工字典
 - 安全资料：载荷武库、默认密码查询、Windows 提权 EXP 索引
 - OOB 回调：RMI、LDAP、HTTP 回调，支持后端密码校验、登录失败限流和 7 天签名 Cookie
+- AI 研判（可选）：围绕邮件和扫描报告进行深度分析与连续对话
 
 | Shell 反连 | 报告解析 |
 |---|---|
@@ -103,6 +104,34 @@ docker compose exec security-tools python manage.py generate-oob-password
 
 密码重置后，已有 OOB 登录 Cookie 会立即失效。
 
+## 邮件与报告 AI 分析（可选）
+
+邮件分析和报告解析支持可选的 AI 深度研判与连续对话。基础解析与本地导出不依赖 AI；只有用户输入访问密码并主动点击“开始 AI 分析”后，服务端才会向配置的兼容 OpenAI Chat Completions 接口发起请求。
+
+在项目根目录 `.env` 中设置：
+
+```dotenv
+AI_API_URL=https://api.stepfun.com/v1/chat/completions
+AI_API_KEY=<服务端 API 密钥>
+AI_MODEL=step-router-v1
+AI_TIMEOUT_SECONDS=120
+AI_MAX_OUTPUT_TOKENS=1600
+AI_TRUST_ENV_PROXY=0
+AI_DATA_RETENTION_HOURS=24
+```
+
+AI 功能与 OOB 共用首次启动生成的访问密码，密码重置后已有 AI 登录 Cookie 同步失效。无需配置独立的 AI 登录密码。
+
+发送范围与数据处理：
+
+- 邮件仅发送精简的结构化分析结果及必要正文；不发送附件二进制、原始邮件和 HTML 正文
+- 扫描报告的大列表最多发送前 500 条，聚合分析每组最多发送前 300 条
+- 对话与结构化分析上下文保存在运行时目录的 SQLite 数据库中，默认保留 24 小时
+- 不启用 `AI_TRUST_ENV_PROXY` 时，AI 请求不会继承系统代理环境变量
+- AI 输出属于辅助研判结果，应结合原始证据进行人工复核
+
+`AI_API_KEY` 留空时 AI 功能保持禁用，其他功能不受影响。API 密钥属于敏感凭据，应限制配置文件和运行环境的读取权限。
+
 ## 部署参数
 
 | 变量 | 默认值 | 说明 |
@@ -117,6 +146,11 @@ docker compose exec security-tools python manage.py generate-oob-password
 | `TRUST_PROXY_HEADERS` | `0` | 可信反向代理环境下按需启用 |
 | `OOB_SESSION_TTL_HOURS` | `24` | OOB 用户凭证有效期（小时） |
 | `OOB_MAX_CONNS` | `200` | RMI/LDAP 并发连接上限 |
+| `AI_API_URL` | 阶跃星辰兼容接口 | AI Chat Completions 接口地址 |
+| `AI_API_KEY` | 空 | AI 服务端 API 密钥；为空时禁用 AI |
+| `AI_MODEL` | `step-router-v1` | AI 模型名称 |
+| `AI_DATA_RETENTION_HOURS` | `24` | AI 会话与分析上下文保留时间 |
+| `AI_TRUST_ENV_PROXY` | `0` | 是否允许 AI 请求继承系统代理配置 |
 
 如需指定回调域名，可在启动时设置：
 
@@ -186,6 +220,7 @@ for test_file in tests/*.js; do node "$test_file"; done
 - 保持单个 Gunicorn worker；OOB 凭证和回调记录当前存储在进程内存中
 - 定期更新系统、Docker、Python 依赖和项目版本
 - 保留 OOB 后端鉴权、登录失败限流及安全 Cookie 设置
+- 启用 AI 前确认模型服务的数据处理政策，避免发送超出授权范围的报告或邮件内容
 
 安全问题报告方式见 [SECURITY.md](SECURITY.md)。
 

@@ -1642,11 +1642,11 @@ html[data-theme="light"] :is(.card-header, [class*="-header"]) {
 html[data-theme="light"] :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
     background: var(--bg-card) !important; border-color: var(--border-mid) !important; color: var(--text-strong) !important;
 }
-html[data-theme="light"] :is(.btn, .oob-btn, .sp-btn, button:not(.btn-close)):not(.btn-danger):not(.btn-success):not(.theme-toggle):not(.sidebar-toggle) {
+html[data-theme="light"] :is(.btn, .oob-btn, .sp-btn, button:not(.btn-close)):not(.btn-danger):not(.btn-success):not(.theme-toggle):not(.sidebar-toggle):not(.ai-launch):not(.ai-btn):not(.ai-quick-btn) {
     background: var(--primary-color) !important; border-color: var(--primary-color) !important;
     color: #fff !important; box-shadow: 0 2px 7px -4px rgba(101,83,199,.45) !important;
 }
-html[data-theme="light"] :is(.btn, .oob-btn, .sp-btn, button:not(.btn-close)):not(.btn-danger):not(.btn-success):not(.theme-toggle):not(.sidebar-toggle):hover {
+html[data-theme="light"] :is(.btn, .oob-btn, .sp-btn, button:not(.btn-close)):not(.btn-danger):not(.btn-success):not(.theme-toggle):not(.sidebar-toggle):not(.ai-launch):not(.ai-btn):not(.ai-quick-btn):hover {
     background: var(--primary-hover) !important; border-color: var(--primary-hover) !important;
     color: #fff !important; box-shadow: 0 4px 11px -6px rgba(101,83,199,.55) !important;
 }
@@ -1972,13 +1972,31 @@ html[data-theme="dark"] .oob-login-error {
     padding-bottom: 8px;
 }
 .sidebar.collapsed .sidebar-section-label {
-    height: 1px;
-    margin: 5px 14px;
-    padding: 0;
-    overflow: hidden;
-    background: var(--border-line);
+    display: none !important;
 }
-.sidebar.collapsed .sidebar-section-label > * { display: none; }
+
+/* 首屏预折叠：在页面绘制前读取状态，避免跳转时先展开再收起。 */
+html.sidebar-precollapsed:not(.sidebar-ready) .sidebar,
+html.sidebar-precollapsed:not(.sidebar-ready) .main-content {
+    transition: none !important;
+}
+html.sidebar-precollapsed .sidebar { width: 80px; }
+html.sidebar-precollapsed .main-content { margin-left: 80px; }
+html.sidebar-precollapsed .sidebar-brand { padding: 0; justify-content: center; }
+html.sidebar-precollapsed .sidebar-brand span { display: none; }
+html.sidebar-precollapsed .sidebar-toggle { left: 65px; }
+html.sidebar-precollapsed .sidebar-menu .nav-item { margin: 2px 8px; }
+html.sidebar-precollapsed .sidebar-menu .nav-link { justify-content: center; padding: 8px 0; min-height: 36px; }
+html.sidebar-precollapsed .sidebar-menu .nav-link span,
+html.sidebar-precollapsed .sidebar-menu .nav-link .menu-arrow,
+html.sidebar-precollapsed .sidebar-user span,
+html.sidebar-precollapsed .sidebar-submenu,
+html.sidebar-precollapsed .sidebar-section-label,
+html.sidebar-precollapsed .theme-toggle-copy,
+html.sidebar-precollapsed .theme-toggle-arrow { display: none !important; }
+html.sidebar-precollapsed .sidebar-menu .nav-link i { margin-right: 0; font-size: 20px; }
+html.sidebar-precollapsed .sidebar-appearance { padding: 10px 17px 12px; }
+html.sidebar-precollapsed .theme-toggle { width: 44px; min-height: 40px; padding: 0; justify-content: center; }
 
 /* 工具切换与动作标签终版：默认中性，选中后才使用主题强调色。 */
 .main-content :is(.sp-tab, .engine-tab, .category-tab, .algo-btn) {
@@ -2307,4 +2325,606 @@ html[data-theme] body .main-content .oob-login-card button.oob-submit {
 html[data-theme] body .main-content .oob-login-card button.oob-submit:hover {
     background: var(--primary-hover) !important;
     border-color: var(--primary-hover) !important;
+}
+
+/* ============================================================
+   暗色科技主题：深海蓝表面、青紫光谱和清晰的安全语义色
+   ============================================================ */
+html[data-theme="dark"] {
+    --primary-color: #38bdf8;
+    --primary-hover: #7dd3fc;
+    --accent: #8b5cf6;
+    --grad: linear-gradient(135deg, #38bdf8 0%, #6366f1 52%, #a78bfa 100%);
+    --button-on-accent: #071522;
+
+    --bg-base: #0b1526;
+    --bg-side: #0e1a2d;
+    --bg-card: #132238;
+    --bg-input: #0d1a2d;
+    --bg-hover: #182b45;
+    --bg-hover2: #203754;
+    --border-card: #203956;
+    --border-mid: #2b4b6d;
+    --border-line: #1a314c;
+    --border-btn: #315577;
+    --border-btn-hover: #4b7da4;
+
+    --text-strong: #f1f7ff;
+    --text-normal: #d5e3f3;
+    --text-dim: #91a8c2;
+    --text-btn: #d9e9f8;
+    --acc-text: #7dd3fc;
+    --code-bg: #091424;
+    --code-text: #cce7ff;
+
+    --success-color: #34d399;
+    --success-bg: rgba(52, 211, 153, .11);
+    --warning-color: #fbbf24;
+    --warning-bg: rgba(251, 191, 36, .11);
+    --danger-color: #fb7185;
+    --danger-bg: rgba(251, 113, 133, .11);
+    --info-bg: rgba(56, 189, 248, .11);
+    --ok-text: #79e6bb;
+    --warn-text: #ffd56a;
+    --err-text: #ff9aaa;
+    --scroll-track: rgba(5, 15, 30, .38);
+}
+
+html[data-theme="dark"] body {
+    background: var(--bg-base);
+}
+
+html[data-theme="dark"] .sidebar {
+    background:
+        radial-gradient(380px 260px at 10% 0%, rgba(56,189,248,.11), transparent 72%),
+        linear-gradient(180deg, #101f35 0%, var(--bg-side) 48%, #0b1728 100%);
+    border-right-color: #294866 !important;
+    box-shadow: 14px 0 42px -30px rgba(56,189,248,.48);
+}
+
+html[data-theme="dark"] .sidebar-brand {
+    background: linear-gradient(100deg, rgba(56,189,248,.13), rgba(99,102,241,.08) 58%, transparent 82%);
+}
+
+html[data-theme="dark"] .sidebar-menu .nav-link.active {
+    background: linear-gradient(90deg, rgba(56,189,248,.15), rgba(99,102,241,.08)) !important;
+    box-shadow: inset 1px 0 0 rgba(125,211,252,.34);
+}
+
+html[data-theme="dark"] .main-content {
+    background-color: var(--bg-base);
+    background-image:
+        radial-gradient(850px 440px at 78% -120px, rgba(56,189,248,.13), transparent 70%),
+        radial-gradient(720px 520px at 4% 105%, rgba(99,102,241,.10), transparent 72%),
+        linear-gradient(rgba(83,139,184,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(83,139,184,.035) 1px, transparent 1px);
+    background-size: auto, auto, 32px 32px, 32px 32px;
+    background-attachment: fixed;
+}
+
+html[data-theme="dark"] .app-page-header {
+    position: relative;
+    border-bottom-color: #27445f !important;
+}
+html[data-theme="dark"] .app-page-header::after {
+    content: "";
+    position: absolute;
+    left: 2px;
+    bottom: -1px;
+    width: 92px;
+    height: 1px;
+    background: var(--grad);
+    box-shadow: 0 0 12px rgba(56,189,248,.55);
+}
+
+html[data-theme="dark"] .main-content :is(
+    .card, [class*="-card"]:not(.alert), .sht-panel, .modal-content,
+    .ops-pane, .recipe-pane, .io-box, .content-pane, .sidebar-pane,
+    .result-content, .output-card, .stat-card, .server-output-panel
+) {
+    background: linear-gradient(145deg, rgba(20,38,62,.98), rgba(15,30,51,.98)) !important;
+    border-color: var(--border-card) !important;
+    border-radius: 9px !important;
+    box-shadow: 0 12px 34px -30px rgba(0,0,0,.9), inset 0 1px 0 rgba(152,205,255,.035);
+}
+
+html[data-theme="dark"] .main-content :is(.card, [class*="-card"], .sht-panel):hover {
+    border-color: rgba(56,189,248,.48) !important;
+    box-shadow: 0 14px 34px -26px rgba(56,189,248,.34), inset 0 1px 0 rgba(152,205,255,.06);
+}
+
+html[data-theme="dark"] .main-content :is(input, textarea, select, .form-control, .form-select):focus {
+    border-color: rgba(56,189,248,.72) !important;
+    box-shadow: 0 0 0 3px rgba(56,189,248,.10) !important;
+}
+
+html[data-theme="dark"] ::selection {
+    background: rgba(56,189,248,.28);
+    color: var(--text-strong);
+}
+
+/* ============================================================
+   最终选定主题：暗色 B 夜幕紫 / 亮色 J 云霞紫
+   卡片使用纯色表面，操作按钮不使用渐变。
+   ============================================================ */
+html[data-theme="dark"] {
+    --primary-color: #a78bfa;
+    --primary-hover: #c4b5fd;
+    --accent: #c36fa7;
+    --grad: #a78bfa;
+    --button-on-accent: #181421;
+    --bg-base: #151823;
+    --bg-side: #191d29;
+    --bg-card: #202532;
+    --bg-input: #171b26;
+    --bg-hover: #292f3e;
+    --bg-hover2: #32394a;
+    --border-card: #363d50;
+    --border-mid: #454d62;
+    --border-line: #303648;
+    --border-btn: #4b5369;
+    --border-btn-hover: #756a9e;
+    --text-strong: #f1eff7;
+    --text-normal: #dedde7;
+    --text-dim: #9fa1b3;
+    --text-btn: #e8e5f0;
+    --acc-text: #c4b5fd;
+    --code-bg: #141823;
+    --code-text: #ddd9ec;
+    --success-color: #5fc89b;
+    --success-bg: rgba(95,200,155,.11);
+    --warning-color: #e4b45f;
+    --warning-bg: rgba(228,180,95,.12);
+    --danger-color: #e87589;
+    --danger-bg: rgba(232,117,137,.12);
+    --info-bg: rgba(167,139,250,.11);
+    --ok-text: #78d6b0;
+    --warn-text: #e8bd72;
+    --err-text: #ee8799;
+}
+
+html[data-theme="light"] {
+    --primary-color: #168bd2;
+    --primary-hover: #0877ba;
+    --accent: #536fe8;
+    --grad: #168bd2;
+    --button-on-accent: #ffffff;
+    --bg-base: #edf6ff;
+    --bg-side: #f8fbff;
+    --bg-card: #ffffff;
+    --bg-input: #f2f7fc;
+    --bg-hover: #e6f1fb;
+    --bg-hover2: #dcebf8;
+    --border-card: #cbdced;
+    --border-mid: #b8d0e5;
+    --border-line: #dfebf5;
+    --border-btn: #afcae1;
+    --border-btn-hover: #6da8cf;
+    --text-strong: #17304c;
+    --text-normal: #3f5871;
+    --text-dim: #66809b;
+    --text-btn: #3f5871;
+    --acc-text: #168bd2;
+    --code-bg: #eef5fb;
+    --code-text: #294763;
+    --success-color: #25845e;
+    --success-bg: rgba(37,132,94,.10);
+    --warning-color: #a86d19;
+    --warning-bg: rgba(168,109,25,.10);
+    --danger-color: #b83f55;
+    --danger-bg: rgba(184,63,85,.10);
+    --info-bg: rgba(22,139,210,.09);
+    --ok-text: #25845e;
+    --warn-text: #a86d19;
+    --err-text: #b83f55;
+}
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] .main-content {
+    background-color: var(--bg-base);
+}
+html[data-theme="dark"] .main-content {
+    background-image: radial-gradient(760px 380px at 88% -100px, rgba(167,139,250,.11), transparent 70%);
+    background-size: auto;
+}
+html[data-theme="light"] body,
+html[data-theme="light"] .main-content {
+    background-color: var(--bg-base);
+}
+html[data-theme="light"] .main-content {
+    background-color: var(--bg-base) !important;
+    background-image: linear-gradient(to bottom right, #d9ecff 0%, #ffffff 100%) !important;
+    background-size: auto !important;
+    background-attachment: fixed !important;
+}
+
+html[data-theme="dark"] .sidebar {
+    background: var(--bg-side);
+    border-right-color: var(--border-card) !important;
+    box-shadow: 10px 0 30px -26px rgba(68,48,112,.55);
+}
+html[data-theme="light"] .sidebar {
+    background: transparent;
+    border-right-color: var(--border-card) !important;
+    box-shadow: 8px 0 24px -22px rgba(22,105,160,.28);
+}
+html[data-theme="light"] .sidebar-brand,
+html[data-theme="light"] .sidebar-appearance {
+    background: transparent !important;
+    background-image: none !important;
+}
+html[data-theme] .sidebar-brand {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--primary-color) 9%, var(--bg-side)), var(--bg-side) 78%);
+}
+html[data-theme] .sidebar-menu .nav-link.active {
+    background: color-mix(in srgb, var(--primary-color) 11%, var(--bg-side)) !important;
+    box-shadow: inset 2px 0 0 var(--primary-color);
+}
+
+html[data-theme] .main-content :is(
+    .card, [class*="-card"]:not(.alert), .sht-panel, .modal-content,
+    .ops-pane, .recipe-pane, .io-box, .content-pane, .sidebar-pane,
+    .result-content, .output-card, .stat-card, .server-output-panel,
+    .sp-stat, .stats-bar
+) {
+    background: var(--bg-card) !important;
+    background-image: none !important;
+    border: 1px solid var(--border-card) !important;
+    border-radius: 9px !important;
+}
+html[data-theme="dark"] .main-content :is(
+    .card, [class*="-card"]:not(.alert), .sht-panel, .modal-content,
+    .ops-pane, .recipe-pane, .io-box, .content-pane, .sidebar-pane,
+    .result-content, .output-card, .stat-card, .server-output-panel,
+    .sp-stat, .stats-bar
+) {
+    box-shadow: 0 12px 28px -25px rgba(0,0,0,.72), inset 0 1px 0 rgba(255,255,255,.025);
+}
+html[data-theme="light"] .main-content :is(
+    .card, [class*="-card"]:not(.alert), .sht-panel, .modal-content,
+    .ops-pane, .recipe-pane, .io-box, .content-pane, .sidebar-pane,
+    .result-content, .output-card, .stat-card, .server-output-panel,
+    .sp-stat, .stats-bar
+) {
+    box-shadow: 0 10px 26px -22px rgba(22,84,140,.30);
+}
+html[data-theme] .main-content :is(.card, [class*="-card"], .sht-panel):hover {
+    border-color: color-mix(in srgb, var(--primary-color) 48%, var(--border-card)) !important;
+    box-shadow: 0 13px 28px -23px color-mix(in srgb, var(--primary-color) 25%, transparent);
+}
+
+/* 主操作按钮统一为纯色；次要、危险、成功按钮继续保留各自语义。 */
+html[data-theme] body :is(
+    .btn-primary, .rsg-btn-primary, .btn-run, .btn-encode,
+    .sp-btn:not(.sp-btn-outline), .oob-submit,
+    .email-export-btn, .ai-btn:not(.secondary):not(.danger)
+) {
+    background: var(--primary-color) !important;
+    background-image: none !important;
+    border-color: var(--primary-color) !important;
+    color: var(--button-on-accent) !important;
+}
+
+html[data-theme] body .main-content :is(
+    button.btn-primary, button.rsg-btn-primary, button.btn-run, button.btn-encode,
+    button.sp-btn:not(.sp-btn-outline), button.email-export-btn
+) {
+    color: var(--button-on-accent) !important;
+}
+html[data-theme="dark"] body .main-content .app-page-shell .app-page-body button.sp-btn.sp-btn:not(.sp-btn-outline) {
+    color: #181421 !important;
+}
+html[data-theme="light"] body .main-content .app-page-shell .app-page-body button.sp-btn.sp-btn:not(.sp-btn-outline) {
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px -7px rgba(22,139,210,.58) !important;
+}
+html[data-theme="light"] body :is(
+    .btn-primary, .rsg-btn-primary, .btn-run, .btn-encode,
+    .email-export-btn, .ai-btn:not(.secondary):not(.danger)
+) {
+    box-shadow: 0 4px 12px -7px rgba(22,139,210,.58) !important;
+}
+html[data-theme] body :is(
+    .btn-primary, .rsg-btn-primary, .btn-run, .btn-encode,
+    .sp-btn:not(.sp-btn-outline), .oob-submit,
+    .email-export-btn, .ai-btn:not(.secondary):not(.danger)
+):hover {
+    background: var(--primary-hover) !important;
+    background-image: none !important;
+    border-color: var(--primary-hover) !important;
+    color: var(--button-on-accent) !important;
+}
+
+html[data-theme] .app-page-header::after,
+html[data-theme] .sidebar-brand::after,
+html[data-theme] [class*="card-title"]::before,
+html[data-theme] .sht-panel h2::before,
+html[data-theme] .result-header h3::before,
+html[data-theme] .sidebar-menu .nav-link.active::before {
+    background: var(--primary-color) !important;
+    box-shadow: none !important;
+}
+
+/* 暗色也保留安全语义层级，避免所有数据和状态都显示成紫色。 */
+html[data-theme="dark"] body .main-content .app-page-shell .app-page-body .sp-stat .num {
+    color: var(--primary-hover) !important;
+}
+html[data-theme="dark"] body .main-content .app-page-shell .app-page-body .sp-stat .num.danger {
+    color: var(--err-text) !important;
+}
+html[data-theme="dark"] body .main-content .app-page-shell .app-page-body .sp-stat .num.warn {
+    color: var(--warn-text) !important;
+}
+html[data-theme="dark"] body :is(.text-success, .status-success) { color: var(--ok-text) !important; }
+html[data-theme="dark"] body :is(.text-warning, .status-warning) { color: var(--warn-text) !important; }
+html[data-theme="dark"] body :is(.text-danger, .status-danger) { color: var(--err-text) !important; }
+html[data-theme="dark"] body :is(.text-info, .status-info) { color: #8fc9f3 !important; }
+
+html[data-theme="dark"] body .main-content .sp-badge.bg-green,
+html[data-theme="dark"] body .main-content :is(.badge.bg-success, .bg-success) {
+    background: rgba(95,200,155,.14) !important;
+    border-color: rgba(95,200,155,.38) !important;
+    color: var(--ok-text) !important;
+}
+html[data-theme="dark"] body .main-content .sp-badge.bg-orange,
+html[data-theme="dark"] body .main-content :is(.badge.bg-warning, .bg-warning) {
+    background: rgba(228,180,95,.14) !important;
+    border-color: rgba(228,180,95,.40) !important;
+    color: var(--warn-text) !important;
+}
+html[data-theme="dark"] body .main-content .sp-badge.bg-danger2,
+html[data-theme="dark"] body .main-content :is(.badge.bg-danger, .bg-danger) {
+    background: rgba(232,117,137,.14) !important;
+    border-color: rgba(232,117,137,.42) !important;
+    color: var(--err-text) !important;
+}
+html[data-theme="dark"] body .main-content .sp-badge.bg-blue {
+    background: rgba(105,174,226,.14) !important;
+    border-color: rgba(105,174,226,.40) !important;
+    color: #8fc9f3 !important;
+}
+html[data-theme="dark"] body .main-content .sp-badge.bg-purple {
+    background: rgba(167,139,250,.14) !important;
+    border-color: rgba(167,139,250,.42) !important;
+    color: var(--primary-hover) !important;
+}
+
+/* 冰川蓝亮色：主要板块共用同一透明表面，让页面渐变连续可见。 */
+html[data-theme="light"] body .main-content .app-page-body :is(
+    .card, [class*="-card"]:not(.alert), .sht-panel,
+    .sp-card, .sp-stat, .stats-bar, .stat-card,
+    .result-content, .output-card, .server-output-panel,
+    .ops-pane, .recipe-pane, .io-box, .content-pane, .sidebar-pane
+) {
+    background-color: rgba(255,255,255,.86) !important;
+    background-image: none !important;
+    border-color: rgba(176,205,232,.82) !important;
+    box-shadow: 0 10px 26px -22px rgba(22,84,140,.28) !important;
+}
+html[data-theme="light"] body .main-content .app-page-body .sp-note {
+    background: rgba(242,247,252,.88) !important;
+    border-left-color: var(--primary-color) !important;
+    color: var(--text-normal) !important;
+}
+
+/* 冰川蓝亮色的文字与安全语义层级。 */
+html[data-theme="light"] body .main-content :is(
+    .app-page-header h1, h1, h2, h3, .card-header, .sp-card-title,
+    .panel-title, .result-header h3
+) {
+    color: var(--text-strong) !important;
+}
+html[data-theme="light"] body .main-content :is(
+    .text-muted, .sp-muted, .sp-stat .lbl, small, .form-text
+) {
+    color: var(--text-dim) !important;
+}
+html[data-theme="light"] body .main-content .app-page-shell .app-page-body .sp-stat .num {
+    color: var(--primary-color) !important;
+}
+html[data-theme="light"] body .main-content .app-page-shell .app-page-body .sp-stat .num.danger {
+    color: var(--err-text) !important;
+}
+html[data-theme="light"] body .main-content .app-page-shell .app-page-body .sp-stat .num.warn {
+    color: var(--warn-text) !important;
+}
+html[data-theme="light"] body :is(.text-success, .status-success) { color: var(--ok-text) !important; }
+html[data-theme="light"] body :is(.text-warning, .status-warning) { color: var(--warn-text) !important; }
+html[data-theme="light"] body :is(.text-danger, .status-danger) { color: var(--err-text) !important; }
+html[data-theme="light"] body :is(.text-info, .status-info) { color: var(--primary-color) !important; }
+
+html[data-theme="light"] body .main-content .sp-badge.bg-green,
+html[data-theme="light"] body .main-content :is(.badge.bg-success, .bg-success) {
+    background: var(--success-bg) !important;
+    border-color: rgba(37,132,94,.30) !important;
+    color: var(--ok-text) !important;
+}
+html[data-theme="light"] body .main-content .sp-badge.bg-orange,
+html[data-theme="light"] body .main-content :is(.badge.bg-warning, .bg-warning) {
+    background: var(--warning-bg) !important;
+    border-color: rgba(168,109,25,.30) !important;
+    color: var(--warn-text) !important;
+}
+html[data-theme="light"] body .main-content .sp-badge.bg-danger2,
+html[data-theme="light"] body .main-content :is(.badge.bg-danger, .bg-danger) {
+    background: var(--danger-bg) !important;
+    border-color: rgba(184,63,85,.30) !important;
+    color: var(--err-text) !important;
+}
+html[data-theme="light"] body .main-content .sp-badge.bg-blue {
+    background: var(--info-bg) !important;
+    border-color: rgba(22,139,210,.28) !important;
+    color: var(--primary-color) !important;
+}
+html[data-theme="light"] body .main-content .sp-badge.bg-purple {
+    background: rgba(83,111,232,.09) !important;
+    border-color: rgba(83,111,232,.28) !important;
+    color: #465fc8 !important;
+}
+
+/* 最终安全语义收口：主题主色用于信息，绿/橙/红用于状态等级。 */
+html[data-theme="dark"] {
+    --success-color: #5fc89b;
+    --success-bg: rgba(95,200,155,.11);
+    --warning-color: #e4b45f;
+    --warning-bg: rgba(228,180,95,.12);
+    --danger-color: #e87589;
+    --danger-bg: rgba(232,117,137,.12);
+    --info-bg: rgba(167,139,250,.11);
+    --ok-text: #78d6b0;
+    --warn-text: #e8bd72;
+    --err-text: #ee8799;
+}
+html[data-theme="light"] {
+    --success-color: #25845e;
+    --success-bg: rgba(37,132,94,.10);
+    --warning-color: #a86d19;
+    --warning-bg: rgba(168,109,25,.10);
+    --danger-color: #b83f55;
+    --danger-bg: rgba(184,63,85,.10);
+    --info-bg: rgba(22,139,210,.09);
+    --ok-text: #25845e;
+    --warn-text: #a86d19;
+    --err-text: #b83f55;
+}
+
+html[data-theme] body .main-content .app-page-shell .app-page-body .sp-stat .num {
+    color: var(--primary-color) !important;
+}
+html[data-theme] body .main-content .app-page-shell .app-page-body .sp-stat .num.warn {
+    color: var(--warn-text) !important;
+}
+html[data-theme] body .main-content .app-page-shell .app-page-body .sp-stat .num.danger {
+    color: var(--err-text) !important;
+}
+
+html[data-theme] body .main-content :is(
+    .sp-badge.bg-green, .badge.bg-success, .bg-success,
+    .text-success, .status-success
+) {
+    background-color: var(--success-bg) !important;
+    border-color: color-mix(in srgb, var(--success-color) 34%, var(--border-card)) !important;
+    color: var(--ok-text) !important;
+}
+html[data-theme] body .main-content :is(
+    .sp-badge.bg-blue, .text-info, .status-info
+) {
+    background-color: var(--info-bg) !important;
+    border-color: color-mix(in srgb, var(--primary-color) 30%, var(--border-card)) !important;
+    color: var(--primary-color) !important;
+}
+html[data-theme] body .main-content :is(
+    .sp-badge.bg-orange, .badge.bg-warning, .bg-warning,
+    .text-warning, .status-warning
+) {
+    background-color: var(--warning-bg) !important;
+    border-color: color-mix(in srgb, var(--warning-color) 36%, var(--border-card)) !important;
+    color: var(--warn-text) !important;
+}
+html[data-theme] body .main-content :is(
+    .sp-badge.bg-danger2, .badge.bg-danger, .bg-danger,
+    .text-danger, .status-danger
+) {
+    background-color: var(--danger-bg) !important;
+    border-color: color-mix(in srgb, var(--danger-color) 38%, var(--border-card)) !important;
+    color: var(--err-text) !important;
+}
+html[data-theme] body .main-content .sp-badge.bg-purple {
+    background-color: color-mix(in srgb, var(--primary-color) 14%, transparent) !important;
+    border-color: color-mix(in srgb, var(--primary-color) 46%, var(--border-card)) !important;
+    color: var(--primary-hover) !important;
+}
+
+/* 最终文字层级：标题、正文、辅助说明保持可辨识的明度差。 */
+html[data-theme][data-theme] body #mainContent.main-content .app-page-shell .app-page-header h1,
+html[data-theme][data-theme] body #mainContent.main-content .app-page-shell .app-page-body :is(
+    h1, h2, h3, .card-header, .sp-card-title, .panel-title, .result-header h3
+) {
+    color: var(--text-strong) !important;
+}
+html[data-theme][data-theme] body #mainContent.main-content .app-page-shell .app-page-body :is(
+    .text-muted, .sp-muted, .sp-stat .lbl, small, .form-text
+) {
+    color: var(--text-dim) !important;
+}
+
+/* 亮色恢复为项目初始色盘；保留透明侧栏和后续交互修复。 */
+html[data-theme="light"] {
+    --primary-color: #7967d8;
+    --primary-hover: #6553c7;
+    --accent: #3f9f7f;
+    --grad: #7967d8;
+    --button-on-accent: #ffffff;
+    --bg-base: #f5f4f2;
+    --bg-side: #fbfaf8;
+    --bg-card: #ffffff;
+    --bg-input: #f8f7f5;
+    --bg-hover: #f0eeeb;
+    --bg-hover2: #e9e6f2;
+    --border-card: #e3e0dc;
+    --border-mid: #d6d1cc;
+    --border-line: #ece9e5;
+    --border-btn: #d3cec8;
+    --border-btn-hover: #aaa2b8;
+    --text-strong: #242326;
+    --text-normal: #48464d;
+    --text-dim: #74717a;
+    --text-btn: #48464d;
+    --acc-text: #6553c7;
+    --success-color: #318568;
+    --success-bg: #edf7f2;
+    --warning-color: #a87422;
+    --warning-bg: #fbf4e8;
+    --danger-color: #b74f61;
+    --danger-bg: #faeef0;
+    --info-bg: #f0edf9;
+    --ok-text: #318568;
+    --warn-text: #a87422;
+    --err-text: #b74f61;
+    --code-bg: #f3f1ef;
+    --code-text: #3e3a43;
+}
+
+html[data-theme="light"] body,
+html[data-theme="light"] #mainContent.main-content {
+    background: var(--bg-base) !important;
+    background-image: none !important;
+}
+html[data-theme="light"] .sidebar,
+html[data-theme="light"] .sidebar-brand,
+html[data-theme="light"] .sidebar-appearance {
+    background: transparent !important;
+    background-image: none !important;
+}
+html[data-theme="light"] .sidebar {
+    border-right-color: var(--border-card) !important;
+    box-shadow: 8px 0 28px -26px rgba(36,35,38,.32);
+}
+
+html[data-theme="light"] body #mainContent.main-content .app-page-body :is(
+    .card, [class*="-card"]:not(.alert), .sht-panel,
+    .sp-card, .sp-stat, .stats-bar, .stat-card,
+    .result-content, .output-card, .server-output-panel,
+    .ops-pane, .recipe-pane, .io-box, .content-pane, .sidebar-pane
+) {
+    background: var(--bg-card) !important;
+    background-image: none !important;
+    border-color: var(--border-card) !important;
+    box-shadow: 0 1px 2px rgba(36,35,38,.035), 0 10px 26px -22px rgba(36,35,38,.20) !important;
+}
+html[data-theme="light"] body #mainContent.main-content .app-page-body .sp-note {
+    background: var(--success-bg) !important;
+    border-left-color: var(--success-color) !important;
+    color: var(--text-normal) !important;
+}
+html[data-theme="light"] body :is(
+    .btn-primary, .rsg-btn-primary, .btn-run, .btn-encode,
+    .sp-btn:not(.sp-btn-outline), .oob-submit,
+    .email-export-btn, .ai-btn:not(.secondary):not(.danger)
+) {
+    background: var(--primary-color) !important;
+    background-image: none !important;
+    border-color: var(--primary-color) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 7px -4px rgba(101,83,199,.45) !important;
 }
