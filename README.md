@@ -4,7 +4,7 @@
 
 把资产整理、扫描报告、请求分析、命令生成、回调验证和安全资料，放进一个清晰、可部署、可审计的工作台。
 
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg?logo=docker&logoColor=white)](Dockerfile) [![Security](https://img.shields.io/badge/use-authorized%20only-critical.svg)](SECURITY.md)
+[![Original code license](https://img.shields.io/badge/original%20code-MIT-green.svg)](LICENSE) [![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg?logo=docker&logoColor=white)](Dockerfile) [![Security](https://img.shields.io/badge/use-authorized%20only-critical.svg)](SECURITY.md)
 
 > SecBox-Web 是 [Test-tools](https://github.com/Acczdy/Test-tools) 的重新设计与持续维护版本，适用于授权渗透测试、应急响应、CTF、实验室和日常安全排查。
 
@@ -129,7 +129,7 @@ for test_file in tests/*.js; do node "$test_file"; done
 
 ## 项目来源、许可证与免责声明
 
-本项目基于多个公开安全工具、网页工具和公开资料进行整合与二次开发，来源和许可证映射见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。新增与修改代码采用 [MIT License](LICENSE)，第三方代码、数据和素材遵循各自声明。
+本项目基于多个公开安全工具、网页工具和公开资料进行整合与二次开发，来源和许可证映射见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。作者及贡献者拥有版权并有权许可的原创代码和文档采用 [MIT License](LICENSE)；第三方代码、数据和素材不在该授权范围内，继续遵循各自许可证或版权限制。
 
 本软件按“原样”提供，仅限合法授权用途。使用者应自行确认授权范围并承担部署、配置和使用本项目产生的全部责任。
 
