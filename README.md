@@ -131,6 +131,8 @@ for test_file in tests/*.js; do node "$test_file"; done
 
 本项目基于多个公开安全工具、网页工具和公开资料进行整合与二次开发，来源和许可证映射见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。作者及贡献者拥有版权并有权许可的原创代码和文档采用 [MIT License](LICENSE)；第三方代码、数据和素材不在该授权范围内，继续遵循各自许可证或版权限制。
 
+载荷武库中的 `data/payloader.json` 含有 [Payloader](https://github.com/3516634930/Payloader) 数据的整合与改编内容，该部分按 AGPL-3.0 单独授权，详见 [`data/PAYLOADER-NOTICE.md`](data/PAYLOADER-NOTICE.md)。
+
 本软件按“原样”提供，仅限合法授权用途。使用者应自行确认授权范围并承担部署、配置和使用本项目产生的全部责任。
 
 欢迎提交 Issue、改进文档或 Pull Request。贡献前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。

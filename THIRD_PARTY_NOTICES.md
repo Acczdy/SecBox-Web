@@ -16,13 +16,14 @@ SecBox-Web 是对公开安全工具、公开资料和第一代 Test-tools 的整
 | Windows 提权 EXP 索引 | [neargle/win-powerup-exp-index](https://github.com/neargle/win-powerup-exp-index/) | 当前未发现标准许可证；不得默认再分发其代码或数据 |
 | 文件下载命令 | [r0eXpeR/File-Download-Generator](https://github.com/r0eXpeR/File-Download-Generator/) | 当前未发现标准许可证；不得默认再分发其代码或数据 |
 | Google Hacking | [r00tSe7en/GoogleHackingTool](https://github.com/r00tSe7en/GoogleHackingTool/) | 当前未发现标准许可证；不得默认再分发其代码或数据 |
-| 安全知识与载荷参考 | [3516634930/Payloader](https://github.com/3516634930/Payloader) | GNU Affero General Public License v3.0（AGPL-3.0）；如复用其代码或受保护内容，须遵守原许可证 |
+| 安全知识与载荷参考与数据 | [3516634930/Payloader](https://github.com/3516634930/Payloader) | `data/payloader.json` 包含其数据的整合/改编内容；该部分按 GNU Affero General Public License v3.0（AGPL-3.0）处理，见 [`data/PAYLOADER-NOTICE.md`](data/PAYLOADER-NOTICE.md) |
 
 此外，前端及 Python 依赖分别遵循其发布包中的许可证，包括 Flask、Werkzeug、Jinja2、Requests、Bootstrap Icons、CryptoJS、JSFuck、sm-crypto、cryptography、openpyxl 与 python-docx 等。
 
 ## 许可边界
 
 - `LICENSE` 只适用于 SecBox-Web 作者及贡献者拥有版权并有权许可的原创代码和文档。
+- `data/payloader.json` 及其直接改编内容不属于 SecBox-Web 根目录 MIT 授权范围，单独遵循 Payloader 的 AGPL-3.0 条款。
 - 未声明许可证不等同于进入公有领域；相应内容的版权仍属于原作者。
 - 上表链接用于署名、溯源和许可核查，不表示原作者、项目或网站认可、赞助或维护 SecBox-Web。
 - 如果你是相关权利人并认为署名、内容或许可状态有误，请通过 GitHub Issue 联系维护者；核实后会视情况更正、补充说明或移除相关内容。
