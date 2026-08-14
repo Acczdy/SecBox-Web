@@ -16,7 +16,7 @@ SecBox-Web 是对公开安全工具、公开资料和第一代 Test-tools 的整
 | Windows 提权 EXP 索引 | [neargle/win-powerup-exp-index](https://github.com/neargle/win-powerup-exp-index/) | 当前未发现标准许可证；不得默认再分发其代码或数据 |
 | 文件下载命令 | [r0eXpeR/File-Download-Generator](https://github.com/r0eXpeR/File-Download-Generator/) | 当前未发现标准许可证；不得默认再分发其代码或数据 |
 | Google Hacking | [r00tSe7en/GoogleHackingTool](https://github.com/r00tSe7en/GoogleHackingTool/) | 当前未发现标准许可证；不得默认再分发其代码或数据 |
-| 安全知识与载荷参考 | [zhaoxuya520/reverse-skill](https://github.com/zhaoxuya520/reverse-skill) | MIT License（原仓库 LICENSE） |
+| 安全知识与载荷参考 | [3516634930/Payloader](https://github.com/3516634930/Payloader) | GNU Affero General Public License v3.0（AGPL-3.0）；如复用其代码或受保护内容，须遵守原许可证 |
 
 此外，前端及 Python 依赖分别遵循其发布包中的许可证，包括 Flask、Werkzeug、Jinja2、Requests、Bootstrap Icons、CryptoJS、JSFuck、sm-crypto、cryptography、openpyxl 与 python-docx 等。
 
