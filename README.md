@@ -88,6 +88,32 @@ python app.py
 
 Windows PowerShell 可使用 `$env:OOB_RMI_PORT="43101"` 等方式设置三个端口后运行 `python app.py`。
 
+### Docker 拉取基础镜像失败
+
+如果构建在 `FROM python:3.13-slim` 处报错，并出现类似：
+
+```text
+proxyconnect tcp dial tcp 127.0.0.1:18080: connect: connection refused
+```
+
+这通常是 Docker daemon 的系统级代理或镜像加速器配置失效，不是 SecBox-Web 的 Dockerfile 问题。先查看当前配置：
+
+```bash
+docker info | grep -E 'Proxy|Registry Mirrors' -A 30
+systemctl cat docker
+```
+
+如果不需要本地代理，请删除或修正 Docker 的 systemd 代理配置（常见位置为 `/etc/systemd/system/docker.service.d/http-proxy.conf`），并检查 `/etc/docker/daemon.json` 中是否配置了不可用的 `registry-mirrors`。修改后重载 Docker：
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+docker pull python:3.13-slim
+docker compose up -d --build
+```
+
+如果部署环境必须通过代理联网，则应先启动代理并确认 Docker daemon 能访问该地址；不要把失效的 `127.0.0.1:18080` 或未经验证的镜像加速地址写入公共部署配置。
+
 ## 可选 AI 分析
 
 AI 默认关闭。需要时，在本地 `.env` 中填写兼容 Chat Completions 协议的接口、服务端凭据和模型标识：
